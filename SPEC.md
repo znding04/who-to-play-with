@@ -1,7 +1,7 @@
-# Who To Hang Out With (和谁玩) — WeChat Mini App Spec
+# 找谁玩 (Who To Play With) — WeChat Mini App Spec
 
 ## Overview
-A social relationship tracker that helps you maintain and strengthen your friendships. Log hangouts with friends, quantitatively score your relationships, and get data-driven recommendations on who you should reach out to next. Never let a good friendship fade from neglect.
+A social relationship tracker (找谁玩) that helps you maintain and strengthen your friendships. Log hangouts with friends, quantitatively score your relationships, and get data-driven recommendations on who you should reach out to next. Never let a good friendship fade from neglect.
 
 ## Tech Stack
 - **Framework**: Vue 3 (Composition API) + Vite

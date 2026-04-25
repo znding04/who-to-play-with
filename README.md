@@ -1,6 +1,6 @@
-# 和谁玩 (Who To Hang Out With)
+# 找谁玩 (Who To Play With)
 
-A social relationship tracker that helps you be intentional about friendships. Built as a WeChat Mini App compatible web app.
+A social relationship tracker (找谁玩) that helps you be intentional about friendships. Built as a WeChat Mini App compatible web app.
 
 ## What It Does
 
