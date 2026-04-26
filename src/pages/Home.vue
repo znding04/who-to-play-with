@@ -1,86 +1,130 @@
 <script setup>
 import { computed } from 'vue'
-import { useTransactions } from '../composables/useTransactions'
-import { CATEGORIES } from '../constants'
+import { useRouter } from 'vue-router'
+import { useFriends } from '../composables/useFriends'
+import { useScoring } from '../composables/useScoring'
+import ScatterPlot from '../components/ScatterPlot.vue'
+import InsightsPanel from '../components/InsightsPanel.vue'
 
-const { transactions, getMonthlyTotals } = useTransactions()
+const router = useRouter()
+const { friends, hangouts } = useFriends()
+const { scoredFriends } = useScoring()
 
-// Current month in YYYY-MM format
-const currentMonth = new Date().toISOString().slice(0, 7)
-const totals = computed(() => getMonthlyTotals(currentMonth))
+const friendCount = computed(() => friends.value.length)
 
-// Recent 5 transactions
-const recent = computed(() => transactions.value.slice(0, 5))
-
-function formatAmount(type, amount) {
-  const sign = type === 'income' ? '+' : '-'
-  return `${sign}¥${amount.toFixed(2)}`
-}
-
-const monthLabel = computed(() => {
-  const [y, m] = currentMonth.split('-')
-  return `${y}年${parseInt(m)}月`
+const hangoutsThisWeek = computed(() => {
+  const now = new Date()
+  const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)
+  return hangouts.value.filter(h => new Date(h.date) >= weekAgo).length
 })
+
+const recommendation = computed(() => {
+  const scored = scoredFriends.value
+  if (scored.length === 0) return null
+
+  const now = Date.now()
+  const dayMs = 1000 * 60 * 60 * 24
+
+  // Priority 1: most negative gap, active in last 30 days
+  const negativeActive = scored
+    .filter(s => s.gap < -5)
+    .filter(s => {
+      const fh = hangouts.value.filter(h => h.friendIds.includes(s.friend.id))
+      if (fh.length === 0) return false
+      const last = fh.map(h => new Date(h.date)).reduce((max, d) => d > max ? d : max, new Date(0))
+      return (now - last) / dayMs <= 30
+    })
+  if (negativeActive.length > 0) {
+    const pick = negativeActive[0] // already sorted by gap asc
+    return {
+      friend: pick.friend,
+      text: `你应该找 ${pick.friend.name} 聊聊 — 你付出了很多但感觉一般，可以认真聊一次`,
+      color: 'from-red-400 to-red-500',
+    }
+  }
+
+  // Priority 2: most positive gap, not seen in 14+ days
+  const positiveStale = [...scored]
+    .reverse()
+    .filter(s => s.gap > 5)
+    .filter(s => {
+      const fh = hangouts.value.filter(h => h.friendIds.includes(s.friend.id))
+      if (fh.length === 0) return true
+      const last = fh.map(h => new Date(h.date)).reduce((max, d) => d > max ? d : max, new Date(0))
+      return (now - last) / dayMs >= 14
+    })
+  if (positiveStale.length > 0) {
+    const pick = positiveStale[0]
+    return {
+      friend: pick.friend,
+      text: `你应该找 ${pick.friend.name} 玩玩 — 这段友谊总是让你很开心，但好久没见了`,
+      color: 'from-green-400 to-green-500',
+    }
+  }
+
+  // Priority 3: lowest quantity overall
+  const byQuantity = [...scored].sort((a, b) => a.quantity - b.quantity)
+  const pick = byQuantity[0]
+  return {
+    friend: pick.friend,
+    text: `你应该找 ${pick.friend.name} 重新建立联系 — 你们好久没联系了`,
+    color: 'from-amber-400 to-amber-500',
+  }
+})
+
+function onSelectFriend(friend) {
+  router.push(`/friends/${friend.id}`)
+}
 </script>
 
 <template>
   <div class="px-4 pt-6">
-    <!-- Header -->
-    <h1 class="text-xl font-bold text-gray-800 mb-1">记账本</h1>
-    <p class="text-sm text-gray-400 mb-4">Personal Finance Tracker</p>
+    <h1 class="text-xl font-bold text-gray-800 mb-1">找谁玩</h1>
+    <p class="text-sm text-gray-400 mb-4">Who To Play With</p>
 
-    <!-- Monthly summary card -->
-    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5 text-white mb-6 shadow-md">
-      <p class="text-sm opacity-80 mb-3">{{ monthLabel }} · 本月概览</p>
-      <div class="grid grid-cols-3 gap-3 text-center">
+    <!-- Recommendation card -->
+    <div
+      v-if="recommendation"
+      class="rounded-2xl p-4 text-white mb-4 shadow-md cursor-pointer bg-gradient-to-br"
+      :class="recommendation.color"
+      @click="onSelectFriend(recommendation.friend)"
+    >
+      <p class="text-xs opacity-80 mb-1">💡 推荐</p>
+      <p class="text-sm font-medium leading-relaxed">{{ recommendation.text }}</p>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white mb-4 shadow-md">
+      <div class="grid grid-cols-2 gap-3 text-center">
         <div>
-          <p class="text-xs opacity-70">收入 Income</p>
-          <p class="text-lg font-bold mt-1">¥{{ totals.income.toFixed(2) }}</p>
+          <p class="text-xs opacity-70">朋友</p>
+          <p class="text-2xl font-bold mt-1">{{ friendCount }}</p>
         </div>
         <div>
-          <p class="text-xs opacity-70">支出 Expense</p>
-          <p class="text-lg font-bold mt-1">¥{{ totals.expense.toFixed(2) }}</p>
-        </div>
-        <div>
-          <p class="text-xs opacity-70">结余 Net</p>
-          <p class="text-lg font-bold mt-1" :class="totals.net >= 0 ? '' : 'text-red-200'">
-            ¥{{ totals.net.toFixed(2) }}
-          </p>
+          <p class="text-xs opacity-70">本周聚会</p>
+          <p class="text-2xl font-bold mt-1">{{ hangoutsThisWeek }}</p>
         </div>
       </div>
     </div>
 
-    <!-- Recent transactions -->
-    <div class="flex justify-between items-center mb-3">
-      <h2 class="text-base font-semibold text-gray-700">最近交易 Recent</h2>
-      <router-link to="/history" class="text-sm text-blue-500 no-underline">查看全部 →</router-link>
+    <!-- Scatter plot or empty state -->
+    <div v-if="friends.length === 0" class="text-center text-gray-400 py-10 text-sm">
+      添加朋友开始记录吧
     </div>
 
-    <div v-if="recent.length === 0" class="text-center text-gray-400 py-10 text-sm">
-      暂无记录，点击 + 添加第一笔<br />No records yet. Tap + to add one.
-    </div>
+    <div v-else>
+      <h2 class="text-sm font-semibold text-gray-600 mb-2">友谊散点图</h2>
+      <div class="bg-gray-50 rounded-xl p-3">
+        <ScatterPlot :scores="scoredFriends" @select="onSelectFriend" />
+      </div>
+      <p class="text-xs text-gray-400 mt-2 text-center">
+        <span class="text-green-500">●</span> 很值得
+        <span class="ml-2 text-red-500">●</span> 不平衡
+        <span class="ml-2 text-blue-500">●</span> 平衡
+      </p>
 
-    <div v-else class="space-y-2">
-      <div
-        v-for="t in recent"
-        :key="t.id"
-        class="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3"
-      >
-        <div class="flex items-center gap-3">
-          <span class="text-2xl">{{ CATEGORIES[t.category]?.icon || '📦' }}</span>
-          <div>
-            <p class="text-sm font-medium text-gray-700">
-              {{ CATEGORIES[t.category]?.zh || t.category }}
-            </p>
-            <p v-if="t.note" class="text-xs text-gray-400 mt-0.5">{{ t.note }}</p>
-          </div>
-        </div>
-        <span
-          class="text-sm font-semibold"
-          :class="t.type === 'income' ? 'text-emerald-500' : 'text-red-500'"
-        >
-          {{ formatAmount(t.type, t.amount) }}
-        </span>
+      <div class="mt-4">
+        <InsightsPanel />
       </div>
     </div>
   </div>
