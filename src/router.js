@@ -5,7 +5,7 @@ const routes = [
   { path: '/friends', name: 'friends', component: () => import('./pages/Friends.vue') },
   { path: '/friends/:id', name: 'friend-detail', component: () => import('./pages/FriendDetail.vue') },
   { path: '/log', name: 'log', component: () => import('./pages/LogHangout.vue') },
-  { path: '/stats', name: 'stats', component: () => import('./pages/Stats.vue') },
+  { path: '/calendar', name: 'calendar', component: () => import('./pages/Calendar.vue') },
 ]
 
 export default createRouter({
