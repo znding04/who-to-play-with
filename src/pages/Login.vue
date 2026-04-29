@@ -109,7 +109,7 @@ function skipLogin() {
   <div class="min-h-screen bg-stone-50 flex flex-col items-center justify-center px-6">
     <!-- Logo area -->
     <div class="text-center mb-10">
-      <h1 class="text-3xl font-semibold text-stone-900 tracking-tight">找谁玩<span class="text-lg font-light text-stone-400">.AI</span></h1>
+      <h1 class="text-3xl font-semibold text-stone-900 tracking-tight">找谁玩</h1>
       <p class="text-sm text-stone-500 mt-2">登录以同步你的数据到云端</p>
     </div>
 

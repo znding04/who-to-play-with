@@ -141,8 +141,8 @@ const toneDot = {
   <div class="px-5 pt-9 pb-2">
     <!-- Header -->
     <div class="mb-9">
-      <p class="text-[11px] uppercase tracking-[0.22em] text-stone-400">Who to play with<span class="font-light text-stone-300 normal-case tracking-normal">.AI</span></p>
-      <h1 class="text-[22px] font-semibold text-stone-900 mt-1.5 tracking-tight">找谁玩<span class="text-[13px] font-light text-stone-400 ml-0.5">.AI</span></h1>
+      <p class="text-[11px] uppercase tracking-[0.22em] text-stone-400">Who to hang with</p>
+      <h1 class="text-[22px] font-semibold text-stone-900 mt-1.5 tracking-tight">找谁玩</h1>
     </div>
 
     <!-- Recommendation -->
