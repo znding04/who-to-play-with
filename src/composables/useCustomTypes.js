@@ -43,5 +43,10 @@ export function useCustomTypes() {
     return created
   }
 
-  return { customTypes, addCustomType }
+  function removeCustomType(value) {
+    const idx = customTypes.value.findIndex((t) => t.value === value)
+    if (idx >= 0) customTypes.value.splice(idx, 1)
+  }
+
+  return { customTypes, addCustomType, removeCustomType }
 }

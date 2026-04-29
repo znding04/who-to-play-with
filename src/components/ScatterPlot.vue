@@ -7,6 +7,9 @@ const props = defineProps({
   scores: { type: Array, required: true },
   highlightId: { type: String, default: null },
   showTuner: { type: Boolean, default: true },
+  // When true (default), non-highlighted dots fade. Set false on Home so the
+  // recommended star pops without dimming the rest of the picture.
+  dimOthers: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['select'])
@@ -47,24 +50,35 @@ const bandPoints = computed(() => {
   return pts.map(([qx, qy]) => `${x(qx)},${y(qy)}`).join(' ')
 })
 
-function handleDotClick(s, event) {
-  const svgEl = event.currentTarget.closest('svg')
-  const rect = svgEl.getBoundingClientRect()
-  const dotEl = event.currentTarget.querySelector('circle')
-  const dotRect = dotEl.getBoundingClientRect()
-
-  const relativeX = ((dotRect.left + dotRect.width / 2) - rect.left) / rect.width * size
-  const relativeY = ((dotRect.top + dotRect.height / 2) - rect.top) / rect.height * size
-
+function handleDotClick(s) {
   popup.value = {
     friend: s.friend,
     quantity: s.quantity,
     quality: s.quality,
     gap: s.gap,
-    x: relativeX,
-    y: relativeY,
+    x: x(s.quantity),
+    y: y(s.quality),
   }
 }
+
+// 5-point star polygon centered at (cx, cy) with outer radius r.
+function starPoints(cx, cy, r) {
+  const pts = []
+  for (let i = 0; i < 10; i++) {
+    const angle = (Math.PI / 5) * i - Math.PI / 2
+    const radius = i % 2 === 0 ? r : r * 0.45
+    pts.push(`${cx + radius * Math.cos(angle)},${cy + radius * Math.sin(angle)}`)
+  }
+  return pts.join(' ')
+}
+
+// Render order: highlighted last so the star sits on top of any nearby dots.
+const orderedScores = computed(() => {
+  if (!props.highlightId) return props.scores
+  const others = props.scores.filter((s) => s.friend.id !== props.highlightId)
+  const highlighted = props.scores.find((s) => s.friend.id === props.highlightId)
+  return highlighted ? [...others, highlighted] : others
+})
 
 function closePopup() {
   popup.value = null
@@ -110,23 +124,33 @@ function gapToneClass(gap) {
       <line :x1="x(50) - 6" :y1="y(50)" :x2="x(50) + 6" :y2="y(50)" stroke="#a8a29e" stroke-width="1" />
       <line :x1="x(50)" :y1="y(50) - 6" :x2="x(50)" :y2="y(50) + 6" stroke="#a8a29e" stroke-width="1" />
 
-      <!-- Friend dots -->
-      <g v-for="s in scores" :key="s.friend.id" class="cursor-pointer" @click="handleDotClick(s, $event)">
+      <!-- Friend dots / star -->
+      <g v-for="s in orderedScores" :key="s.friend.id" class="cursor-pointer" @click="handleDotClick(s)">
         <text
           :x="x(s.quantity)"
-          :y="y(s.quality) - 13"
+          :y="y(s.quality) - (highlightId === s.friend.id ? 17 : 13)"
           text-anchor="middle"
-          font-size="9"
+          :font-size="highlightId === s.friend.id ? 10 : 9"
+          :font-weight="highlightId === s.friend.id ? 600 : 400"
           fill="#44403c"
-          :opacity="highlightId && highlightId !== s.friend.id ? 0.2 : 0.85"
+          :opacity="dimOthers && highlightId && highlightId !== s.friend.id ? 0.2 : 0.85"
         >{{ s.friend.name }}</text>
 
+        <polygon
+          v-if="highlightId === s.friend.id"
+          :points="starPoints(x(s.quantity), y(s.quality), 12)"
+          :fill="dotColor(s.gap)"
+          stroke="#1c1917"
+          stroke-width="1.5"
+          stroke-linejoin="round"
+        />
         <circle
+          v-else
           :cx="x(s.quantity)" :cy="y(s.quality)" r="9"
           :fill="dotColor(s.gap)"
-          :opacity="highlightId && highlightId !== s.friend.id ? 0.2 : 0.9"
-          :stroke="highlightId === s.friend.id ? '#1c1917' : 'white'"
-          :stroke-width="highlightId === s.friend.id ? 2 : 1"
+          :opacity="dimOthers && highlightId ? 0.2 : 0.9"
+          stroke="white"
+          stroke-width="1"
         />
         <title>{{ s.friend.name }} (频率: {{ Math.round(s.quantity) }}, 感受: {{ Math.round(s.quality) }})</title>
       </g>
