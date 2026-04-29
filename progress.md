@@ -1,7 +1,7 @@
 # 找谁玩 — Project Progress
 
 ## Last Updated
-2026-04-28 (10-star + view mode + diversified seed)
+2026-04-29 (i18n + PWA icons + UI polish)
 
 ## Current Status
 
@@ -55,6 +55,22 @@
       - 老周叔 (远亲, 5 hangouts, ratings 2-3)
       - 阿强 (老同学, 4 hangouts of complaints, ratings 2-4)
     - SEED_VERSION bumped to 2; old seed data is wiped and replaced on first load
+
+- **2026-04-29 i18n + PWA + UI Polish:**
+  - ✅ Full internationalization (i18n) with English + Chinese support
+    - `src/i18n/en.js` + `src/i18n/zh.js` — complete translations
+    - `src/composables/useI18n.js` — language composable
+    - `src/components/LocaleToggle.vue` — language switcher UI
+  - ✅ PWA icons and favicons added:
+    - Favicons: 16×16, 32×32, .ico, apple-touch-icon
+    - PWA icons: 192×192, 512×512
+    - App icon: `public/tohangwith_icon.png`
+  - ✅ UI improvements across pages:
+    - Home, Friends, FriendDetail, Calendar, LogHangout, Login pages polished
+    - ScatterPlot and InsightsPanel component updates
+    - Mobile-friendly improvements
+  - ✅ Seed data split by locale: `seedFriends.en.js` + `seedFriends.zh.js`
+  - ✅ WeChat mini program config updates
 
 ### 🚧 In Progress
 - Auth deployment — see 2026-04-29 section below
