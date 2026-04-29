@@ -1,12 +1,16 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useGapThreshold } from '../composables/useGapThreshold'
 
 const props = defineProps({
   scores: { type: Array, required: true },
   highlightId: { type: String, default: null },
+  showTuner: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['select'])
+
+const { gapThreshold, MIN, MAX } = useGapThreshold()
 
 // Popup state
 const popup = ref(null) // { friend, quantity, quality, gap, x, y }
@@ -24,10 +28,25 @@ function y(val) {
 }
 
 function dotColor(gap) {
-  if (gap > 5) return '#22c55e'
-  if (gap < -5) return '#ef4444'
+  if (gap > gapThreshold.value) return '#22c55e'
+  if (gap < -gapThreshold.value) return '#ef4444'
   return '#3b82f6'
 }
+
+// Hexagonal balanced band: |quality - quantity| <= threshold, intersected with [0,100]^2.
+// Includes the upper-right (100,100) and lower-left (0,0) corners.
+const bandPoints = computed(() => {
+  const t = Math.min(100, gapThreshold.value)
+  const pts = [
+    [t, 0],          // bottom edge enter (lower line)
+    [100, 100 - t],  // right edge exit (lower line)
+    [100, 100],      // upper-right corner
+    [100 - t, 100],  // top edge exit (upper line)
+    [0, t],          // left edge exit (upper line)
+    [0, 0],          // lower-left corner
+  ]
+  return pts.map(([qx, qy]) => `${x(qx)},${y(qy)}`).join(' ')
+})
 
 function handleDotClick(s, event) {
   // Show popup with friend info instead of navigation
@@ -55,8 +74,8 @@ function closePopup() {
 }
 
 function gapLabel(gap) {
-  if (gap > 5) return '很值得'
-  if (gap < -5) return '不平衡'
+  if (gap > gapThreshold.value) return '很值得'
+  if (gap < -gapThreshold.value) return '不平衡'
   return '平衡'
 }
 </script>
@@ -77,6 +96,9 @@ function gapLabel(gap) {
       <!-- Axis titles -->
       <text :x="size / 2" :y="size - 4" text-anchor="middle" font-size="10" fill="#6b7280">频率 →</text>
       <text :x="12" :y="size / 2" text-anchor="middle" font-size="10" fill="#6b7280" transform="rotate(-90, 12, 150)">感受 →</text>
+
+      <!-- Balanced band along x=y -->
+      <polygon :points="bandPoints" fill="#3b82f6" fill-opacity="0.08" stroke="#93c5fd" stroke-width="1" stroke-dasharray="3 3" />
 
       <!-- Y=X diagonal reference line -->
       <line :x1="x(0)" :y1="y(0)" :x2="x(100)" :y2="y(100)" stroke="#d1d5db" stroke-width="1" stroke-dasharray="4 3" />
@@ -108,6 +130,21 @@ function gapLabel(gap) {
       </g>
     </svg>
 
+    <!-- Threshold tuner -->
+    <div v-if="showTuner" class="mt-2 px-1">
+      <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+        <span>平衡范围 ±{{ gapThreshold }}</span>
+        <span class="text-gray-400">越大越宽容</span>
+      </div>
+      <input
+        type="range"
+        :min="MIN"
+        :max="MAX"
+        v-model.number="gapThreshold"
+        class="w-full accent-blue-500 touch-manipulation"
+      />
+    </div>
+
     <!-- Popup card -->
     <div
       v-if="popup"
@@ -125,8 +162,12 @@ function gapLabel(gap) {
         @click="closePopup"
       >✕</button>
 
-      <!-- Friend name -->
-      <p class="font-semibold text-gray-800 text-base mb-1">{{ popup.friend.name }}</p>
+      <!-- Friend name (click to open detail page) -->
+      <router-link
+        :to="`/friends/${popup.friend.id}`"
+        class="block font-semibold text-blue-600 text-base mb-1 no-underline active:text-blue-700"
+        @click="closePopup"
+      >{{ popup.friend.name }} ›</router-link>
 
       <!-- Tags -->
       <p v-if="popup.friend.tags && popup.friend.tags.length" class="text-xs text-gray-400 mb-2">
@@ -138,7 +179,7 @@ function gapLabel(gap) {
         <span class="text-xs text-gray-500">差值: </span>
         <span
           class="text-xs font-semibold"
-          :class="popup.gap > 5 ? 'text-green-500' : popup.gap < -5 ? 'text-red-500' : 'text-blue-500'"
+          :class="popup.gap > gapThreshold ? 'text-green-500' : popup.gap < -gapThreshold ? 'text-red-500' : 'text-blue-500'"
         >
           {{ popup.gap > 0 ? '+' : '' }}{{ Math.round(popup.gap) }}
         </span>

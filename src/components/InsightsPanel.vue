@@ -2,16 +2,18 @@
 import { computed } from 'vue'
 import { useFriends } from '../composables/useFriends'
 import { useScoring } from '../composables/useScoring'
+import { useGapThreshold } from '../composables/useGapThreshold'
 
 const { hangouts } = useFriends()
 const { scoredFriends } = useScoring()
+const { gapThreshold } = useGapThreshold()
 
 const insights = computed(() => {
   const scored = scoredFriends.value
   const result = []
 
   // Insight 1: High frequency low quality
-  const freqLowQuality = scored.filter(s => s.quantity > 30 && s.gap < -5)
+  const freqLowQuality = scored.filter(s => s.quantity > 30 && s.gap < -gapThreshold.value)
   if (freqLowQuality.length > 0) {
     result.push({
       icon: '⚠️',

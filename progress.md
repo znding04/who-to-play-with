@@ -1,7 +1,7 @@
 # 找谁玩 — Project Progress
 
 ## Last Updated
-2026-04-28 (post-deploy)
+2026-04-28 (UX round 1)
 
 ## Current Status
 
@@ -26,6 +26,15 @@
   - ✅ Enhanced friend model: phone, birthday, location, howWeMet, importantEvents[], values[]
   - ✅ FriendDetail page updated to show all new fields (basic info, TA的价值, 重要时刻)
   - ✅ LogHangout page shows friend tags next to names
+- **2026-04-28 UX round 1 — post-deploy improvements:**
+  - ✅ Fixed `+ 添加` button on Friends page (resetForm bug closed the form immediately)
+  - ✅ Tunable balance threshold (`useGapThreshold` composable, default ±12, persisted to localStorage)
+  - ✅ Hexagonal balanced band rendered on ScatterPlot (covers corners) + slider tuner
+  - ✅ Custom hangout types when picking 其他 (`useCustomTypes` composable; persisted; rendered as picker chips)
+  - ✅ Mobile-friendly Edit/Delete buttons in Friends list (proper touch targets and colors)
+  - ✅ Edit/Delete buttons added to FriendDetail header (Edit deep-links to `/friends?edit=<id>`)
+  - ✅ ScatterPlot popup friend name now a router-link to friend detail
+  - ✅ FriendDetail's 记录聚会 button passes `?friend=<id>` to pre-select friend in LogHangout
 
 ### 🚧 In Progress
 - Mobile / WeChat in-app browser testing of the live deploy

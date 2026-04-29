@@ -2,11 +2,13 @@
 import { computed } from 'vue'
 import { useFriends } from '../composables/useFriends'
 import { useScoring } from '../composables/useScoring'
+import { useGapThreshold } from '../composables/useGapThreshold'
 import ScatterPlot from '../components/ScatterPlot.vue'
 import InsightsPanel from '../components/InsightsPanel.vue'
 
 const { friends, hangouts } = useFriends()
 const { scoredFriends } = useScoring()
+const { gapThreshold } = useGapThreshold()
 
 const friendCount = computed(() => friends.value.length)
 
@@ -25,7 +27,7 @@ const recommendation = computed(() => {
 
   // Priority 1: most negative gap, active in last 30 days
   const negativeActive = scored
-    .filter(s => s.gap < -5)
+    .filter(s => s.gap < -gapThreshold.value)
     .filter(s => {
       const fh = hangouts.value.filter(h => h.friendIds.includes(s.friend.id))
       if (fh.length === 0) return false
@@ -44,7 +46,7 @@ const recommendation = computed(() => {
   // Priority 2: most positive gap, not seen in 14+ days
   const positiveStale = [...scored]
     .reverse()
-    .filter(s => s.gap > 5)
+    .filter(s => s.gap > gapThreshold.value)
     .filter(s => {
       const fh = hangouts.value.filter(h => h.friendIds.includes(s.friend.id))
       if (fh.length === 0) return true

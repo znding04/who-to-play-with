@@ -1,12 +1,27 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useFriends } from '../composables/useFriends'
 import { useScoring } from '../composables/useScoring'
+import { useGapThreshold } from '../composables/useGapThreshold'
 
 const router = useRouter()
-const { friends, addFriend, updateFriend, deleteFriend } = useFriends()
+const route = useRoute()
+const { friends, addFriend, updateFriend, deleteFriend, getFriendById } = useFriends()
 const { scoredFriends } = useScoring()
+const { gapThreshold } = useGapThreshold()
+
+function maybeOpenEditFromQuery() {
+  const id = route.query.edit
+  if (!id) return
+  const target = getFriendById(id)
+  if (target) openEdit(target)
+  // Clear the query so reloading the page doesn't reopen the form.
+  router.replace({ path: route.path })
+}
+
+onMounted(maybeOpenEditFromQuery)
+watch(() => route.query.edit, maybeOpenEditFromQuery)
 
 const showAdd = ref(false)
 const showEdit = ref(false)
@@ -93,7 +108,7 @@ function handleEdit() {
   resetForm()
 }
 
-function resetForm() {
+function clearFormFields() {
   newName.value = ''
   newTags.value = ''
   newPhone.value = ''
@@ -102,9 +117,24 @@ function resetForm() {
   newHowWeMet.value = ''
   newImportantEvents.value = ''
   newValues.value = ''
+}
+
+function resetForm() {
+  clearFormFields()
   editingFriend.value = null
   showAdd.value = false
   showEdit.value = false
+}
+
+function toggleAdd() {
+  if (showAdd.value) {
+    resetForm()
+  } else {
+    clearFormFields()
+    editingFriend.value = null
+    showEdit.value = false
+    showAdd.value = true
+  }
 }
 
 function handleDelete(friend) {
@@ -119,7 +149,7 @@ function handleDelete(friend) {
     <div class="flex items-center justify-between mb-5">
       <h1 class="text-xl font-bold text-gray-800">朋友们</h1>
       <button
-        @click="showAdd = !showAdd; showEdit = false; editingFriend = null; resetForm()"
+        @click="toggleAdd"
         class="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg border-none cursor-pointer"
       >
         {{ showAdd ? '取消' : '+ 添加' }}
@@ -262,19 +292,18 @@ function handleDelete(friend) {
         <div class="flex items-center gap-3">
           <span
             class="text-xs font-medium"
-            :class="s.gap > 5 ? 'text-green-500' : s.gap < -5 ? 'text-red-500' : 'text-blue-500'"
+            :class="s.gap > gapThreshold ? 'text-green-500' : s.gap < -gapThreshold ? 'text-red-500' : 'text-blue-500'"
           >
             {{ s.gap > 0 ? '+' : '' }}{{ Math.round(s.gap) }}
           </span>
           <button
             @click.stop="openEdit(s.friend)"
-            class="text-gray-300 text-xs bg-transparent border-none cursor-pointer hover:text-blue-400"
+            class="px-2.5 py-1.5 text-xs text-blue-600 bg-blue-50 active:bg-blue-100 rounded-lg border-none cursor-pointer touch-manipulation"
           >编辑</button>
           <button
             @click.stop="handleDelete(s.friend)"
-            class="text-gray-300 text-xs bg-transparent border-none cursor-pointer hover:text-red-400"
+            class="px-2.5 py-1.5 text-xs text-red-500 bg-red-50 active:bg-red-100 rounded-lg border-none cursor-pointer touch-manipulation"
           >删除</button>
-          <span class="text-gray-300 text-sm">›</span>
         </div>
       </div>
     </div>

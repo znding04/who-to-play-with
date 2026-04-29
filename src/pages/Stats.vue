@@ -2,11 +2,15 @@
 import { computed } from 'vue'
 import { useFriends } from '../composables/useFriends'
 import { useScoring } from '../composables/useScoring'
+import { useGapThreshold } from '../composables/useGapThreshold'
+import { useCustomTypes } from '../composables/useCustomTypes'
 import ScatterPlot from '../components/ScatterPlot.vue'
 import { HANGOUT_TYPES } from '../types/index.js'
 
 const { friends, hangouts } = useFriends()
 const { scoredFriends } = useScoring()
+const { gapThreshold } = useGapThreshold()
+const { customTypes } = useCustomTypes()
 
 // Section 2: Rankings
 const mostRewarding = computed(() =>
@@ -43,7 +47,8 @@ const mostCommonType = computed(() => {
   const counts = {}
   hangouts.value.forEach(h => { counts[h.type] = (counts[h.type] || 0) + 1 })
   const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
-  const info = HANGOUT_TYPES.find(t => t.value === top[0])
+  const allTypes = [...HANGOUT_TYPES, ...customTypes.value]
+  const info = allTypes.find(t => t.value === top[0])
   return info ? `${info.icon} ${info.label}` : top[0]
 })
 
@@ -59,8 +64,8 @@ const mostFrequentFriend = computed(() => {
 })
 
 function gapColor(gap) {
-  if (gap > 5) return 'text-green-600'
-  if (gap < -5) return 'text-red-500'
+  if (gap > gapThreshold.value) return 'text-green-600'
+  if (gap < -gapThreshold.value) return 'text-red-500'
   return 'text-blue-500'
 }
 </script>

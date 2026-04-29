@@ -1,11 +1,14 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useFriends } from '../composables/useFriends'
+import { useCustomTypes } from '../composables/useCustomTypes'
 import { HANGOUT_TYPES, DURATION_OPTIONS } from '../types/index.js'
 
 const router = useRouter()
+const route = useRoute()
 const { friends, addFriend, addHangout } = useFriends()
+const { customTypes, addCustomType } = useCustomTypes()
 
 // Form state
 const selectedFriendIds = ref([])
@@ -15,9 +18,22 @@ const quality = ref(3)
 const date = ref(new Date().toISOString().slice(0, 10))
 const note = ref('')
 
+// Custom type input (only used when 其他 is selected)
+const customTypeLabel = ref('')
+
+// Predefined + saved custom types in the picker
+const allTypes = computed(() => [...HANGOUT_TYPES, ...customTypes.value])
+
 // Inline add friend
 const showAddFriend = ref(false)
 const newFriendName = ref('')
+
+onMounted(() => {
+  const id = route.query.friend
+  if (id && friends.value.some((f) => f.id === id)) {
+    selectedFriendIds.value = [id]
+  }
+})
 
 function toggleFriend(id) {
   const idx = selectedFriendIds.value.indexOf(id)
@@ -41,9 +57,18 @@ const canSubmit = computed(() => selectedFriendIds.value.length > 0)
 
 function submit() {
   if (!canSubmit.value) return
+
+  // If 其他 is selected and the user typed a custom label, persist it as a new type
+  // and use the new type's value for this hangout.
+  let typeToSave = hangoutType.value
+  if (hangoutType.value === 'other' && customTypeLabel.value.trim()) {
+    const created = addCustomType(customTypeLabel.value)
+    if (created) typeToSave = created.value
+  }
+
   addHangout({
     friendIds: [...selectedFriendIds.value],
-    type: hangoutType.value,
+    type: typeToSave,
     duration: duration.value,
     quality: quality.value,
     note: note.value,
@@ -121,9 +146,9 @@ function submit() {
       <h2 class="text-sm font-semibold text-gray-600 mb-2">类型</h2>
       <div class="flex flex-wrap gap-2">
         <button
-          v-for="t in HANGOUT_TYPES"
+          v-for="t in allTypes"
           :key="t.value"
-          @click="hangoutType = t.value"
+          @click="hangoutType = t.value; customTypeLabel = ''"
           class="px-3 py-1.5 rounded-full text-sm border cursor-pointer transition-colors"
           :class="hangoutType === t.value
             ? 'bg-blue-500 text-white border-blue-500'
@@ -132,6 +157,15 @@ function submit() {
           {{ t.icon }} {{ t.label }}
         </button>
       </div>
+      <input
+        v-if="hangoutType === 'other'"
+        v-model="customTypeLabel"
+        placeholder="自定义类型名（如：桌游、剧本杀）"
+        class="mt-2 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
+      />
+      <p v-if="hangoutType === 'other' && customTypeLabel.trim()" class="text-xs text-gray-400 mt-1">
+        保存后 "{{ customTypeLabel.trim() }}" 会出现在类型选项里
+      </p>
     </section>
 
     <!-- Duration picker -->

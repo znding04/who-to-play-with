@@ -1,14 +1,32 @@
 <script setup>
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useFriends } from '../composables/useFriends'
 import { useScoring } from '../composables/useScoring'
+import { useGapThreshold } from '../composables/useGapThreshold'
+import { useCustomTypes } from '../composables/useCustomTypes'
 import { HANGOUT_TYPES } from '../types/index.js'
 import ScatterPlot from '../components/ScatterPlot.vue'
 
 const route = useRoute()
-const { getFriendById, getHangoutsForFriend } = useFriends()
+const router = useRouter()
+const { getFriendById, getHangoutsForFriend, deleteFriend } = useFriends()
 const { scoredFriends } = useScoring()
+const { gapThreshold } = useGapThreshold()
+const { customTypes } = useCustomTypes()
+
+function handleEdit() {
+  if (!friend.value) return
+  router.push({ path: '/friends', query: { edit: friend.value.id } })
+}
+
+function handleDelete() {
+  if (!friend.value) return
+  if (confirm(`确定删除 ${friend.value.name}？`)) {
+    deleteFriend(friend.value.id)
+    router.push('/friends')
+  }
+}
 
 const friendId = computed(() => route.params.id)
 const friend = computed(() => getFriendById(friendId.value))
@@ -23,17 +41,19 @@ const friendHangouts = computed(() => {
     .sort((a, b) => new Date(b.date) - new Date(a.date))
 })
 
-const typeMap = Object.fromEntries(HANGOUT_TYPES.map(t => [t.value, t]))
+const typeMap = computed(() =>
+  Object.fromEntries([...HANGOUT_TYPES, ...customTypes.value].map(t => [t.value, t]))
+)
 
 function gapText(gap) {
-  if (gap < -5) return `你在 ${friend.value.name} 身上投入很多但感觉一般`
-  if (gap > 5) return '这段友谊很值得'
+  if (gap < -gapThreshold.value) return `你在 ${friend.value.name} 身上投入很多但感觉一般`
+  if (gap > gapThreshold.value) return '这段友谊很值得'
   return '平衡得很好'
 }
 
 function gapColor(gap) {
-  if (gap < -5) return 'text-red-500'
-  if (gap > 5) return 'text-green-500'
+  if (gap < -gapThreshold.value) return 'text-red-500'
+  if (gap > gapThreshold.value) return 'text-green-500'
   return 'text-blue-500'
 }
 
@@ -47,7 +67,16 @@ function stars(n) {
     <!-- Header -->
     <div class="flex items-center justify-between mb-5">
       <router-link to="/friends" class="text-blue-500 text-sm no-underline">&larr; 朋友列表</router-link>
-      <div class="w-10"></div>
+      <div v-if="friend" class="flex items-center gap-2">
+        <button
+          @click="handleEdit"
+          class="px-3 py-1.5 text-xs text-blue-600 bg-blue-50 active:bg-blue-100 rounded-lg border-none cursor-pointer touch-manipulation"
+        >编辑</button>
+        <button
+          @click="handleDelete"
+          class="px-3 py-1.5 text-xs text-red-500 bg-red-50 active:bg-red-100 rounded-lg border-none cursor-pointer touch-manipulation"
+        >删除</button>
+      </div>
     </div>
 
     <div v-if="!friend" class="text-center text-gray-400 py-16 text-sm">
@@ -122,7 +151,7 @@ function stars(n) {
       <!-- Mini scatter plot -->
       <div v-if="scoredFriends.length > 0" class="bg-gray-50 rounded-xl p-3 mb-4">
         <h2 class="text-sm font-semibold text-gray-600 mb-2">在散点图中的位置</h2>
-        <ScatterPlot :scores="scoredFriends" :highlight-id="friendId" />
+        <ScatterPlot :scores="scoredFriends" :highlight-id="friendId" :show-tuner="false" />
       </div>
 
       <!-- Hangout history -->
@@ -153,7 +182,7 @@ function stars(n) {
 
       <!-- Log hangout button -->
       <router-link
-        to="/log"
+        :to="`/log?friend=${friend.id}`"
         class="block w-full py-3 bg-blue-500 text-white text-center font-semibold text-base rounded-xl no-underline"
       >
         记录聚会
