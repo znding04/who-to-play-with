@@ -1,5 +1,9 @@
 # 找谁玩 (Who To Play With)
 
+> 量化管理你的朋友圈
+
+**Live app: https://who-to-play-with.ljding94.workers.dev/#**
+
 A social relationship tracker (找谁玩) that helps you be intentional about friendships. Built as a WeChat Mini App compatible web app.
 
 ## What It Does
