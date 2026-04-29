@@ -71,11 +71,6 @@ function success(data = {}) {
 // ============================================================
 
 async function getJwtSecret(env) {
-  if (env.KV) {
-    const secret = await env.KV.get('jwt_secret');
-    if (secret) return secret;
-  }
-  // Fallback for dev: use a default (replace in production)
   return env.JWT_SECRET || 'dev-secret-change-in-production';
 }
 
@@ -127,11 +122,53 @@ function clearCookie() {
   return `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
 }
 
-// Get current user from request
+// ============================================================
+// Password Hashing (PBKDF2 via Web Crypto)
+// ============================================================
+
+async function hashPassword(password) {
+  const enc = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const hash = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  );
+  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+  const hashHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${saltHex}:${hashHex}`;
+}
+
+async function verifyPassword(password, stored) {
+  const [saltHex, hashHex] = stored.split(':');
+  const salt = new Uint8Array(saltHex.match(/.{2}/g).map(b => parseInt(b, 16)));
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const hash = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  );
+  const computedHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return computedHex === hashHex;
+}
+
+// Get current user from request (supports cookie or Authorization header)
 async function getCurrentUser(req, env) {
-  const cookieHeader = req.headers.get('Cookie') || '';
-  const cookies = parseCookies(cookieHeader);
-  const token = cookies[COOKIE_NAME];
+  // Try cookie first
+  const cookieStr = req.headers.get('Cookie') || '';
+  const cookies = parseCookies(cookieStr);
+  let token = cookies[COOKIE_NAME];
+
+  // Fallback to Authorization header
+  if (!token) {
+    const authHeader = req.headers.get('Authorization') || '';
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.slice(7);
+    }
+  }
+
   if (!token) return null;
   return verifyJwt(token, env);
 }
@@ -413,7 +450,7 @@ async function migrateUserData(env, userId, friendsData, hangoutsData) {
     }
 
     await env.DB
-      .prepare(`INSERT INTO friends (id, user_id, name, tags, phone, birthday, location, how_we_met, important_events, values, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .prepare(`INSERT INTO friends (id, user_id, name, tags, phone, birthday, location, how_we_met, important_events, "values", created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .bind(
         friend.id,
         userId,
@@ -471,10 +508,56 @@ async function migrateUserData(env, userId, friendsData, hangoutsData) {
 // API Routes
 // ============================================================
 
-// POST /api/auth/:provider — initiate OAuth or send magic link
+// POST /api/auth/:provider — initiate OAuth, signup, login, or send magic link
 router.add('POST', '/api/auth/:provider', async (req, env, params) => {
   const { provider } = params;
   const appBase = env.APP_BASE_URL || DEFAULT_APP_BASE;
+
+  // Email/password signup
+  if (provider === 'signup') {
+    const { email, password, name } = await req.json();
+    if (!email || !password) return json({ error: 'Email and password required' }, 400);
+    if (password.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400);
+
+    const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+    if (existing) return json({ error: 'An account with this email already exists' }, 400);
+
+    const passwordHashValue = await hashPassword(password);
+    const id = crypto.randomUUID();
+    const displayName = name || email.split('@')[0];
+
+    await env.DB
+      .prepare('INSERT INTO users (id, email, name, avatar_url, auth_provider, provider_user_id, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(id, email, displayName, null, 'email', '', passwordHashValue, Date.now())
+      .run();
+
+    const user = await env.DB.prepare('SELECT id, email, name, avatar_url, auth_provider, created_at FROM users WHERE id = ?').bind(id).first();
+    const token = await signJwt({ userId: user.id, email: user.email }, env);
+
+    return new Response(JSON.stringify({ token, user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatar_url, authProvider: user.auth_provider } }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json', 'Set-Cookie': cookieHeader(token) },
+    });
+  }
+
+  // Email/password login
+  if (provider === 'login') {
+    const { email, password } = await req.json();
+    if (!email || !password) return json({ error: 'Email and password required' }, 400);
+
+    const user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+    if (!user || !user.password_hash) return json({ error: 'Invalid email or password' }, 401);
+
+    const valid = await verifyPassword(password, user.password_hash);
+    if (!valid) return json({ error: 'Invalid email or password' }, 401);
+
+    const token = await signJwt({ userId: user.id, email: user.email }, env);
+
+    return new Response(JSON.stringify({ token, user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatar_url, authProvider: user.auth_provider } }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Set-Cookie': cookieHeader(token) },
+    });
+  }
 
   if (provider === 'magic') {
     // Send magic link
@@ -484,11 +567,7 @@ router.add('POST', '/api/auth/:provider', async (req, env, params) => {
     const token = await createMagicToken(env, email);
     const magicLink = `${appBase}/#/login?magic=1&token=${token}&email=${encodeURIComponent(email)}`;
 
-    // In production, send this via email. For now, log it.
     console.log(`Magic link for ${email}: ${magicLink}`);
-
-    // TODO: Use Cloudflare Email Routing to send the actual email:
-    // await sendEmail(env, email, 'Your login link', `Click here: ${magicLink}`);
 
     return success({ message: 'Magic link sent', magicLink: env.NODE_ENV === 'development' ? magicLink : null });
   }
@@ -630,7 +709,7 @@ router.add('POST', '/api/friends', requireAuth(async (req, env, params, url, use
   const now = Date.now();
 
   await env.DB
-    .prepare(`INSERT INTO friends (id, user_id, name, tags, phone, birthday, location, how_we_met, important_events, values, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .prepare(`INSERT INTO friends (id, user_id, name, tags, phone, birthday, location, how_we_met, important_events, "values", created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .bind(id, user.userId, name, JSON.stringify(tags || []), phone || '', birthday || '', location || '', howWeMet || '', JSON.stringify(importantEvents || []), JSON.stringify(values || []), now, now)
     .run();
 
@@ -648,7 +727,7 @@ router.add('PUT', '/api/friends/:id', requireAuth(async (req, env, params, user)
   const updates = [];
   const bindings = [];
 
-  const fields = { name: 'name', tags: 'tags', phone: 'phone', birthday: 'birthday', location: 'location', howWeMet: 'how_we_met', importantEvents: 'important_events', values: 'values' };
+  const fields = { name: 'name', tags: 'tags', phone: 'phone', birthday: 'birthday', location: 'location', howWeMet: 'how_we_met', importantEvents: 'important_events', values: '"values"' };
   for (const [key, col] of Object.entries(fields)) {
     if (body[key] !== undefined) {
       updates.push(`${col} = ?`);
@@ -832,31 +911,51 @@ router.add('POST', '/api/data/migrate', requireAuth(async (req, env, params, url
 // Worker Entry Point
 // ============================================================
 
+// ============================================================
+// CORS Helper
+// ============================================================
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie',
+  'Access-Control-Allow-Credentials': 'true',
+  'Access-Control-Max-Age': '86400',
+};
+
+function addCorsHeaders(response) {
+  const newHeaders = new Headers(response.headers);
+  for (const [key, value] of Object.entries(CORS_HEADERS)) {
+    newHeaders.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders,
+  });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // Serve API routes
-    if (url.pathname.startsWith('/api/')) {
-      return router.dispatch(request, env);
-    }
-
     // CORS preflight
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie',
-          'Access-Control-Allow-Credentials': 'true',
-          'Access-Control-Max-Age': '86400',
-        },
-      });
+      return new Response(null, { headers: CORS_HEADERS });
     }
 
-    // Serve static files from dist/
-    // Note: In production, you'd use Cloudflare Pages or bundle dist/ with the Worker
-    // For this implementation, we return 404 for non-API routes (SPA is served separately)
+    // Serve API routes
+    if (url.pathname.startsWith('/api/')) {
+      try {
+        const response = await router.dispatch(request, env);
+        return addCorsHeaders(response);
+      } catch (err) {
+        console.error('API error:', err);
+        return addCorsHeaders(json({ error: 'Internal server error' }, 500));
+      }
+    }
+
+    // For non-API routes, return 404 (static files served via Workers Sites / Pages)
     return new Response('Not found', { status: 404 });
   },
 };

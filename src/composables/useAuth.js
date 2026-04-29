@@ -126,13 +126,61 @@ export function useAuth() {
   }
 
   /**
-   * Initiate magic link email login
+   * Email/password signup
    */
-  async function loginWithMagicLink(email) {
+  async function signup(email, password, name) {
     try {
       _loading.value = true;
       _error.value = null;
-      return await api.initiateOAuth('magic');
+      const data = await api.signup(email, password, name);
+      if (data.token) {
+        localStorage.setItem('wtpw_token', data.token);
+        document.cookie = `wtpw_session=${data.token}; path=/; max-age=${60 * 60 * 24 * 30}`;
+        _user.value = data.user;
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ user: data.user }));
+        await migrateLocalStorage();
+      }
+      return data;
+    } catch (err) {
+      _error.value = err.message;
+      return { error: err.message };
+    } finally {
+      _loading.value = false;
+    }
+  }
+
+  /**
+   * Email/password login
+   */
+  async function login(email, password) {
+    try {
+      _loading.value = true;
+      _error.value = null;
+      const data = await api.login(email, password);
+      if (data.token) {
+        localStorage.setItem('wtpw_token', data.token);
+        document.cookie = `wtpw_session=${data.token}; path=/; max-age=${60 * 60 * 24 * 30}`;
+        _user.value = data.user;
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ user: data.user }));
+        await migrateLocalStorage();
+      }
+      return data;
+    } catch (err) {
+      _error.value = err.message;
+      return { error: err.message };
+    } finally {
+      _loading.value = false;
+    }
+  }
+
+  /**
+   * Initiate magic link email login
+   */
+  async function loginWithMagicLink(emailAddr) {
+    try {
+      _loading.value = true;
+      _error.value = null;
+      return await api.initiateOAuth('magic', { email: emailAddr });
     } catch (err) {
       _error.value = err.message;
       return { error: err.message };
@@ -192,6 +240,8 @@ export function useAuth() {
     refreshSession,
     handleAuthCallback,
     handleMagicCallback,
+    signup,
+    login,
     loginWithProvider,
     loginWithMagicLink,
     logout,

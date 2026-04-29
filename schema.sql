@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   avatar_url TEXT,
   auth_provider TEXT NOT NULL,
   provider_user_id TEXT,
+  password_hash TEXT,
   created_at INTEGER NOT NULL
 );
 
@@ -22,7 +23,7 @@ CREATE TABLE IF NOT EXISTS friends (
   location TEXT DEFAULT '',
   how_we_met TEXT DEFAULT '',
   important_events TEXT DEFAULT '[]',
-  values TEXT DEFAULT '[]',
+  "values" TEXT DEFAULT '[]',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

@@ -3,29 +3,20 @@ main = "src/worker.js"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Serve static assets from dist/
+[assets]
+directory = "./dist"
+
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
 database_name = "who-to-play-with-db"
 database_id = "YOUR_D1_DATABASE_ID"
 
-# KV Namespace for JWT secret storage
-[[kv_namespaces]]
-binding = "KV"
-id = "YOUR_KV_NAMESPACE_ID"
-
 # Environment variables (set via `wrangler secret put` for production)
 # GOOGLE_CLIENT_ID - Google OAuth2 client ID
 # GOOGLE_CLIENT_SECRET - Google OAuth2 client secret
 # GITHUB_CLIENT_ID - GitHub OAuth2 client ID
 # GITHUB_CLIENT_SECRET - GitHub OAuth2 client secret
-# APPLE_CLIENT_ID - Apple Sign In client ID (service ID)
-# APPLE_TEAM_ID - Apple developer team ID
-# APPLE_KEY_ID - Apple key ID
 # JWT_SECRET - Secret for signing JWT sessions (generate with: openssl rand -base64 32)
-# MAGIC_LINK_SECRET - Secret for signing magic link tokens
-# APP_BASE_URL - Frontend base URL for OAuth redirects (e.g., https://who-to-play-with.ljding94.workers.dev)
-
-[env.production]
-name = "who-to-play-with"
-route = { pattern = "who-to-play-with.ljding94.workers.dev", zone_name = "ljding94.workers.dev" }
+# APP_BASE_URL - Frontend base URL for OAuth redirects

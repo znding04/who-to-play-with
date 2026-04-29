@@ -57,42 +57,80 @@
     - SEED_VERSION bumped to 2; old seed data is wiped and replaced on first load
 
 ### 🚧 In Progress
-- Mobile / WeChat in-app browser testing of the live deploy
+- Auth deployment — see 2026-04-29 section below
 
 ### ⏳ Pending
 - (deferred) Mini Program path: WeChat DevTools test with real appid, get WeChat account app ID
 
-## Completed: 2026-04-29 — User Auth + Persistent Data Storage
+## [2026-04-29] — Auth Deployment Progress
 
-### What Was Done
-- **Worker.js env fixes**: Fixed `env` references at module level and in functions that weren't receiving `env` as a parameter (getGoogleAuthUrl, getGitHubAuthUrl, getAppleAuthUrl, exchangeGoogleCode, exchangeGitHubCode, exchangeAppleCode). Now all env-dependent functions properly accept `env` as a parameter.
-- **Cloudflare D1 schema**: Already set up in `schema.sql` with tables for users, friends, hangouts, hangout_friends, auth_tokens
-- **wrangler.toml**: Already configured with D1 binding, KV namespace, and environment variables for OAuth secrets
-- **Backend Worker**: Full API implementation with:
-  - OAuth flows for Google, GitHub, Apple Sign In
-  - Magic link email authentication
-  - JWT session management
-  - RESTful CRUD for friends and hangouts
-  - Data migration endpoint for localStorage → D1
-- **Frontend auth components**:
-  - `useAuth.js` composable: session management, OAuth callbacks, data migration
-  - `useFriends.js`: cloud sync mode when logged in, API calls for CRUD
-  - `api.js`: auth-aware API client with cookie/token handling
-  - `Login.vue`: 4 login methods (Google, GitHub, Apple, email magic link)
-  - `App.vue`: user avatar display, login button, logout functionality
-- **Build verified**: `npm run build` succeeds with no errors
+### Code Changes Done
+- Removed unused KV namespace binding from `wrangler.toml` (worker uses `env.JWT_SECRET` directly)
+- Simplified `getJwtSecret()` in worker.js to use `env.JWT_SECRET` without KV fallback
+- Frontend build verified: `npm run build` succeeds
+- Auth code reviewed: email/password signup+login, OAuth (Google/GitHub/Apple), magic link all implemented
+- Auth callback flow verified: worker → `/#/auth-callback?token=...` → Login.vue `onMounted` → `handleAuthCallback`
 
-### Next Steps
-- Configure OAuth credentials in Cloudflare dashboard:
-  1. Create Google OAuth2 app, set secrets via `wrangler secret put GOOGLE_CLIENT_ID/SECRET`
-  2. Create GitHub OAuth app, set secrets via `wrangler secret put GITHUB_CLIENT_ID/SECRET`
-  3. Configure Apple Sign In in Apple Developer console, set secrets
-  4. Set `wrangler secret put JWT_SECRET` (generate with: `openssl rand -base64 32`)
-  5. Set `wrangler secret put APP_BASE_URL=https://who-to-play-with.ljding94.workers.dev`
-- Create D1 database: `wrangler d1 create who-to-play-with-db`
-- Run migrations: `wrangler d1 execute who-to-play-with-db --file=./schema.sql --remote`
-- Deploy worker: `wrangler deploy`
-- Test full auth flow end-to-end
+### Deployment Steps (requires `npx wrangler login` first)
+
+Run these commands in order:
+
+```bash
+# 1. Authenticate wrangler (opens browser)
+npx wrangler login
+
+# 2. Create D1 database
+npx wrangler d1 create who-to-play-with-db
+# ⚠️ Copy the database_id from output and update wrangler.toml
+
+# 3. Run migrations
+npx wrangler d1 execute who-to-play-with-db --file=./schema.sql --remote
+
+# 4. Set secrets
+openssl rand -base64 32 | npx wrangler secret put JWT_SECRET
+echo "https://who-to-play-with.ljding94.workers.dev" | npx wrangler secret put APP_BASE_URL
+
+# 5. Build and deploy
+npm run build
+npx wrangler deploy
+```
+
+### OAuth Setup Required (manual)
+
+**GitHub OAuth** (easiest, do first):
+1. Go to https://github.com/settings/developers
+2. Click "New OAuth App"
+3. App name: `找谁玩`
+4. Homepage URL: `https://who-to-play-with.ljding94.workers.dev`
+5. Authorization callback URL: `https://who-to-play-with.ljding94.workers.dev/api/auth/callback/github`
+6. Copy Client ID and Client Secret, then:
+   ```bash
+   npx wrangler secret put GITHUB_CLIENT_ID
+   npx wrangler secret put GITHUB_CLIENT_SECRET
+   ```
+
+**Google OAuth**:
+1. Go to https://console.cloud.google.com/ → APIs & Services → Credentials
+2. Create OAuth 2.0 Client ID (Web application)
+3. Authorized redirect URIs: `https://who-to-play-with.ljding94.workers.dev/api/auth/callback/google`
+4. Copy Client ID and Secret, then:
+   ```bash
+   npx wrangler secret put GOOGLE_CLIENT_ID
+   npx wrangler secret put GOOGLE_CLIENT_SECRET
+   ```
+
+**Apple Sign In** (optional, complex — skip for now):
+- Requires Apple Developer Program ($99/year), Service ID, and ES256 key
+
+### Status
+- ✅ Auth code written and reviewed
+- ✅ Frontend build passes
+- ✅ wrangler.toml cleaned up (KV removed)
+- ❌ D1 database not yet created (needs `wrangler login`)
+- ❌ Secrets not yet set (needs `wrangler login`)
+- ❌ Worker not yet deployed (needs `wrangler login`)
+- ❌ OAuth apps not yet created (needs manual setup in GitHub/Google consoles)
+- ✅ Email/password auth will work immediately after deploy (no OAuth needed)
 
 ## Deployment
 

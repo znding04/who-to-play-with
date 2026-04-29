@@ -3,7 +3,7 @@
  * Handles auth-aware requests to the Cloudflare Worker API
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://who-to-play-with.ljding94.workers.dev';
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 function getSessionToken() {
   try {
@@ -56,8 +56,16 @@ async function request(method, path, body = null, useAuth = true) {
 
 export const api = {
   // Auth
-  async initiateOAuth(provider) {
-    return request('POST', `/api/auth/${provider}`, null, false);
+  async signup(email, password, name) {
+    return request('POST', '/api/auth/signup', { email, password, name }, false);
+  },
+
+  async login(email, password) {
+    return request('POST', '/api/auth/login', { email, password }, false);
+  },
+
+  async initiateOAuth(provider, data = null) {
+    return request('POST', `/api/auth/${provider}`, data, false);
   },
 
   async getMe() {
