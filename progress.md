@@ -62,6 +62,38 @@
 ### ⏳ Pending
 - (deferred) Mini Program path: WeChat DevTools test with real appid, get WeChat account app ID
 
+## Completed: 2026-04-29 — User Auth + Persistent Data Storage
+
+### What Was Done
+- **Worker.js env fixes**: Fixed `env` references at module level and in functions that weren't receiving `env` as a parameter (getGoogleAuthUrl, getGitHubAuthUrl, getAppleAuthUrl, exchangeGoogleCode, exchangeGitHubCode, exchangeAppleCode). Now all env-dependent functions properly accept `env` as a parameter.
+- **Cloudflare D1 schema**: Already set up in `schema.sql` with tables for users, friends, hangouts, hangout_friends, auth_tokens
+- **wrangler.toml**: Already configured with D1 binding, KV namespace, and environment variables for OAuth secrets
+- **Backend Worker**: Full API implementation with:
+  - OAuth flows for Google, GitHub, Apple Sign In
+  - Magic link email authentication
+  - JWT session management
+  - RESTful CRUD for friends and hangouts
+  - Data migration endpoint for localStorage → D1
+- **Frontend auth components**:
+  - `useAuth.js` composable: session management, OAuth callbacks, data migration
+  - `useFriends.js`: cloud sync mode when logged in, API calls for CRUD
+  - `api.js`: auth-aware API client with cookie/token handling
+  - `Login.vue`: 4 login methods (Google, GitHub, Apple, email magic link)
+  - `App.vue`: user avatar display, login button, logout functionality
+- **Build verified**: `npm run build` succeeds with no errors
+
+### Next Steps
+- Configure OAuth credentials in Cloudflare dashboard:
+  1. Create Google OAuth2 app, set secrets via `wrangler secret put GOOGLE_CLIENT_ID/SECRET`
+  2. Create GitHub OAuth app, set secrets via `wrangler secret put GITHUB_CLIENT_ID/SECRET`
+  3. Configure Apple Sign In in Apple Developer console, set secrets
+  4. Set `wrangler secret put JWT_SECRET` (generate with: `openssl rand -base64 32`)
+  5. Set `wrangler secret put APP_BASE_URL=https://who-to-play-with.ljding94.workers.dev`
+- Create D1 database: `wrangler d1 create who-to-play-with-db`
+- Run migrations: `wrangler d1 execute who-to-play-with-db --file=./schema.sql --remote`
+- Deploy worker: `wrangler deploy`
+- Test full auth flow end-to-end
+
 ## Deployment
 
 **Chosen route: A — H5 hosted publicly, shared via WeChat link / QR**

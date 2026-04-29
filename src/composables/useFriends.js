@@ -1,5 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { useDataFilter } from './useDataFilter'
+import { api } from '../utils/api.js'
+import { useAuth } from './useAuth.js'
 
 const FRIENDS_KEY = 'wtpw_friends'
 const HANGOUTS_KEY = 'wtpw_hangouts'
@@ -56,12 +58,23 @@ migrate()
 const _friends = ref(load(FRIENDS_KEY))
 const _hangouts = ref(load(HANGOUTS_KEY))
 
+// Cloud mode state (from D1 API)
+const _cloudFriends = ref([])
+const _cloudHangouts = ref([])
+const _cloudLoading = ref(false)
+const _cloudSynced = ref(false)
+
+// Persist to localStorage only when not in cloud mode
 watch(_friends, (val) => {
-  localStorage.setItem(FRIENDS_KEY, JSON.stringify(val))
+  if (!_cloudSynced.value) {
+    localStorage.setItem(FRIENDS_KEY, JSON.stringify(val))
+  }
 }, { deep: true })
 
 watch(_hangouts, (val) => {
-  localStorage.setItem(HANGOUTS_KEY, JSON.stringify(val))
+  if (!_cloudSynced.value) {
+    localStorage.setItem(HANGOUTS_KEY, JSON.stringify(val))
+  }
 }, { deep: true })
 
 const { showSeed } = useDataFilter()
@@ -78,7 +91,43 @@ const hangouts = computed(() =>
 // Internal handle for the seed module to wipe / replace state.
 export const _internalState = { friends: _friends, hangouts: _hangouts }
 
+// ============================================================
+// Cloud Sync — fetch from API and merge
+// ============================================================
+
+async function syncFromCloud() {
+  _cloudLoading.value = true
+  try {
+    const [friendsData, hangoutsData] = await Promise.all([
+      api.getFriends(),
+      api.getHangouts(),
+    ])
+    _cloudFriends.value = friendsData.friends || []
+    _cloudHangouts.value = hangoutsData.hangouts || []
+    _cloudSynced.value = true
+
+    // Merge: replace local state with cloud state
+    _friends.value = _cloudFriends.value.map((f) => ({ ...f, isSeed: false }))
+    _hangouts.value = _cloudHangouts.value.map((h) => ({ ...h, isSeed: false }))
+  } catch (err) {
+    console.error('Cloud sync failed:', err)
+  } finally {
+    _cloudLoading.value = false
+  }
+}
+
 export function useFriends() {
+  // Lazy cloud sync on first API call
+  let _syncPromise = null
+
+  function ensureCloudSync() {
+    const { isLoggedIn } = useAuth()
+    if (!isLoggedIn.value) return
+    if (_cloudSynced.value) return
+    if (!_syncPromise) _syncPromise = syncFromCloud()
+    return _syncPromise
+  }
+
   function addFriend({ name, tags = [], phone, birthday, location, howWeMet, importantEvents, values, isSeed = false }) {
     const friend = {
       id: crypto.randomUUID(),
@@ -94,6 +143,11 @@ export function useFriends() {
       isSeed,
     }
     _friends.value.push(friend)
+
+    const { isLoggedIn } = useAuth()
+    if (isLoggedIn.value && !isSeed) {
+      api.createFriend(friend).catch((err) => console.error('Failed to sync friend:', err))
+    }
     return friend
   }
 
@@ -101,11 +155,21 @@ export function useFriends() {
     const idx = _friends.value.findIndex((f) => f.id === id)
     if (idx < 0) return null
     _friends.value[idx] = { ..._friends.value[idx], ...updates }
+
+    const { isLoggedIn } = useAuth()
+    if (isLoggedIn.value) {
+      api.updateFriend(id, updates).catch((err) => console.error('Failed to sync friend update:', err))
+    }
     return _friends.value[idx]
   }
 
   function deleteFriend(id) {
     _friends.value = _friends.value.filter((f) => f.id !== id)
+
+    const { isLoggedIn } = useAuth()
+    if (isLoggedIn.value) {
+      api.deleteFriend(id).catch((err) => console.error('Failed to sync friend delete:', err))
+    }
   }
 
   // Lookup uses the raw store so deep links to seed friends still resolve
@@ -127,11 +191,21 @@ export function useFriends() {
       isSeed,
     }
     _hangouts.value.push(hangout)
+
+    const { isLoggedIn } = useAuth()
+    if (isLoggedIn.value && !isSeed) {
+      api.createHangout(hangout).catch((err) => console.error('Failed to sync hangout:', err))
+    }
     return hangout
   }
 
   function deleteHangout(id) {
     _hangouts.value = _hangouts.value.filter((h) => h.id !== id)
+
+    const { isLoggedIn } = useAuth()
+    if (isLoggedIn.value) {
+      api.deleteHangout(id).catch((err) => console.error('Failed to sync hangout delete:', err))
+    }
   }
 
   function getHangoutsForFriend(friendId) {
@@ -159,5 +233,8 @@ export function useFriends() {
     getHangoutsForFriend,
     deleteSeedData,
     hasSeedData,
+    cloudLoading: _cloudLoading,
+    cloudSynced: _cloudSynced,
+    syncFromCloud,
   }
 }
