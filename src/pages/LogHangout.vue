@@ -154,7 +154,7 @@ function submit() {
 </script>
 
 <template>
-  <div class="px-5 pt-9 pb-2">
+  <div class="px-5 pt-14 pb-2">
     <!-- Header -->
     <div class="flex items-center justify-between mb-9">
       <router-link to="/" class="text-stone-500 text-[13px] no-underline flex items-center gap-1.5">

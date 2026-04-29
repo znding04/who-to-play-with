@@ -6,6 +6,7 @@ export default {
     calendar: 'Calendar',
   },
   app: {
+    brand: 'Who to hang with',
     account: 'Account',
     logout: 'Log out',
     login: 'Log in',
@@ -24,8 +25,8 @@ export default {
     scatterTitle: 'Friendship map',
     legend: {
       worth: 'Worth it',
-      unbalanced: 'Off balance',
       balanced: 'Balanced',
+      notWorth: 'Not worth it',
     },
     phrases: {
       stale: [
@@ -194,12 +195,14 @@ export default {
     moreLenient: 'wider = more forgiving',
     xAxis: 'Frequency →',
     yAxis: 'Quality →',
+    hangMore: 'hang with more',
+    hangLess: 'hang with less',
     tooltipFreq: 'Frequency',
     tooltipQual: 'Quality',
     gap: 'Gap',
     worth: 'Worth it',
-    unbalanced: 'Off balance',
     balanced: 'Balanced',
+    notWorth: 'Not worth it',
   },
   types: {
     meal: 'Meal',

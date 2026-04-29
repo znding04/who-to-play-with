@@ -6,6 +6,7 @@ export default {
     calendar: '日历',
   },
   app: {
+    brand: '找谁玩',
     account: '账户',
     logout: '退出登录',
     login: '登录',
@@ -24,8 +25,8 @@ export default {
     scatterTitle: '友谊散点图',
     legend: {
       worth: '很值得',
-      unbalanced: '不平衡',
       balanced: '平衡',
+      notWorth: '不值得',
     },
     phrases: {
       stale: [
@@ -194,12 +195,14 @@ export default {
     moreLenient: '越大越宽容',
     xAxis: '频率 →',
     yAxis: '感受 →',
+    hangMore: '多找',
+    hangLess: '少找',
     tooltipFreq: '频率',
     tooltipQual: '感受',
     gap: '差值',
     worth: '很值得',
-    unbalanced: '不平衡',
     balanced: '平衡',
+    notWorth: '不值得',
   },
   types: {
     meal: '吃饭',

@@ -110,13 +110,7 @@ const toneDot = {
 </script>
 
 <template>
-  <div class="px-5 pt-9 pb-2">
-    <!-- Header -->
-    <div class="mb-9">
-      <p class="text-[11px] uppercase tracking-[0.22em] text-stone-400">{{ t('home.tagline') }}</p>
-      <h1 class="text-[22px] font-semibold text-stone-900 mt-1.5 tracking-tight">{{ t('home.title') }}</h1>
-    </div>
-
+  <div class="px-5 pt-14 pb-2">
     <!-- Recommendation -->
     <div v-if="recommendation" class="mb-9">
       <div class="flex items-center justify-between mb-2.5">
@@ -178,8 +172,8 @@ const toneDot = {
       </div>
       <div class="flex justify-center gap-5 text-[11px] text-stone-500 mt-3">
         <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>{{ t('home.legend.worth') }}</span>
-        <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>{{ t('home.legend.unbalanced') }}</span>
         <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-stone-400"></span>{{ t('home.legend.balanced') }}</span>
+        <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>{{ t('home.legend.notWorth') }}</span>
       </div>
 
       <div class="mt-9">

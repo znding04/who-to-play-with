@@ -142,7 +142,7 @@ const sortedFriends = computed(() =>
 </script>
 
 <template>
-  <div class="px-5 pt-9 pb-2">
+  <div class="px-5 pt-14 pb-2">
     <!-- Header -->
     <div class="flex items-end justify-between mb-9">
       <div>

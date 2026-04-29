@@ -165,7 +165,7 @@ const thisMonthHangouts = computed(() => {
 </script>
 
 <template>
-  <div class="px-5 pt-9 pb-2">
+  <div class="px-5 pt-14 pb-2">
     <!-- Header -->
     <div class="mb-7">
       <p class="text-[11px] uppercase tracking-[0.22em] text-stone-400">{{ t('calendar.tagline') }}</p>

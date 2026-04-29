@@ -89,7 +89,7 @@ function closePopup() {
 
 function gapLabel(gap) {
   if (gap > gapThreshold.value) return t('scatter.worth')
-  if (gap < -gapThreshold.value) return t('scatter.unbalanced')
+  if (gap < -gapThreshold.value) return t('scatter.notWorth')
   return t('scatter.balanced')
 }
 
@@ -115,7 +115,11 @@ function gapToneClass(gap) {
 
       <!-- Axis titles -->
       <text :x="size / 2" :y="size - 4" text-anchor="middle" font-size="10" fill="#78716c">{{ t('scatter.xAxis') }}</text>
-      <text :x="12" :y="size / 2" text-anchor="middle" font-size="10" fill="#78716c" transform="rotate(-90, 12, 150)">{{ t('scatter.yAxis') }}</text>
+      <text :x="10" :y="size / 2" text-anchor="middle" font-size="10" fill="#78716c" :transform="`rotate(-90, 10, ${size / 2})`">{{ t('scatter.yAxis') }}</text>
+
+      <!-- Directional annotations: top = high quality "hang with more", bottom = low quality "hang with less" -->
+      <text :x="size / 2" :y="padding + 18" text-anchor="middle" font-size="11" fill="#a8a29e" font-style="italic">{{ t('scatter.hangMore') }} →</text>
+      <text :x="size / 2" :y="size - padding - 10" text-anchor="middle" font-size="11" fill="#a8a29e" font-style="italic">← {{ t('scatter.hangLess') }}</text>
 
       <!-- Balanced band -->
       <polygon :points="bandPoints" fill="#a8a29e" fill-opacity="0.06" stroke="#d6d3d1" stroke-width="1" stroke-dasharray="3 3" />
