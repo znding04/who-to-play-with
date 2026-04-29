@@ -1,7 +1,7 @@
 # 找谁玩 — Project Progress
 
 ## Last Updated
-2026-04-28 04:00
+2026-04-28 21:03
 
 ## Current Status
 
@@ -19,6 +19,13 @@
 - InsightsPanel with 4 insight types
 - Friends list now sorted by gap (most negative first) with gap indicators
 - `npm run build` succeeds with no errors
+- **2026-04-28 User Feedback v2 — All improvements implemented:**
+  - ✅ 20 friends with realistic hangout histories replacing 4-friend demo
+  - ✅ Z-score normalization: global mean at (50, 50) on scatter plot, stable as data grows
+  - ✅ ScatterPlot: name labels next to dots + popup with friend info/tags/gap on click (no page navigation)
+  - ✅ Enhanced friend model: phone, birthday, location, howWeMet, importantEvents[], values[]
+  - ✅ FriendDetail page updated to show all new fields (basic info, TA的价值, 重要时刻)
+  - ✅ LogHangout page shows friend tags next to names
 
 ### 🚧 In Progress
 - WebView placeholder URL needs real deployed URL

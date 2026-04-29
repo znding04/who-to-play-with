@@ -1,12 +1,10 @@
 <script setup>
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { useFriends } from '../composables/useFriends'
 import { useScoring } from '../composables/useScoring'
 import ScatterPlot from '../components/ScatterPlot.vue'
 import { HANGOUT_TYPES } from '../types/index.js'
 
-const router = useRouter()
 const { friends, hangouts } = useFriends()
 const { scoredFriends } = useScoring()
 
@@ -65,10 +63,6 @@ function gapColor(gap) {
   if (gap < -5) return 'text-red-500'
   return 'text-blue-500'
 }
-
-function onSelectFriend(friend) {
-  router.push(`/friends/${friend.id}`)
-}
 </script>
 
 <template>
@@ -85,7 +79,7 @@ function onSelectFriend(friend) {
       <section class="mb-6">
         <h2 class="text-sm font-semibold text-gray-600 mb-2">友谊散点图</h2>
         <div class="bg-gray-50 rounded-xl p-3">
-          <ScatterPlot :scores="scoredFriends" @select="onSelectFriend" />
+          <ScatterPlot :scores="scoredFriends" />
         </div>
         <p class="text-xs text-gray-400 mt-2 text-center">
           <span class="text-green-500">●</span> 很值得
@@ -103,8 +97,7 @@ function onSelectFriend(friend) {
           <div
             v-for="s in mostRewarding"
             :key="s.friend.id"
-            class="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg mb-1 cursor-pointer active:bg-gray-100"
-            @click="onSelectFriend(s.friend)"
+            class="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg mb-1"
           >
             <span class="text-sm text-gray-700">{{ s.friend.name }}</span>
             <span class="text-sm font-medium" :class="gapColor(s.gap)">{{ s.gap > 0 ? '+' : '' }}{{ Math.round(s.gap) }}</span>
@@ -118,8 +111,7 @@ function onSelectFriend(friend) {
           <div
             v-for="s in needsAttention"
             :key="s.friend.id"
-            class="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg mb-1 cursor-pointer active:bg-gray-100"
-            @click="onSelectFriend(s.friend)"
+            class="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg mb-1"
           >
             <span class="text-sm text-gray-700">{{ s.friend.name }}</span>
             <span class="text-sm font-medium" :class="gapColor(s.gap)">{{ s.gap > 0 ? '+' : '' }}{{ Math.round(s.gap) }}</span>
@@ -133,8 +125,7 @@ function onSelectFriend(friend) {
           <div
             v-for="s in longTimeNoSee"
             :key="s.friend.id"
-            class="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg mb-1 cursor-pointer active:bg-gray-100"
-            @click="onSelectFriend(s.friend)"
+            class="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg mb-1"
           >
             <span class="text-sm text-gray-700">{{ s.friend.name }}</span>
             <span class="text-sm font-medium" :class="gapColor(s.gap)">{{ s.gap > 0 ? '+' : '' }}{{ Math.round(s.gap) }}</span>

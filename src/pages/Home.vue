@@ -1,12 +1,10 @@
 <script setup>
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { useFriends } from '../composables/useFriends'
 import { useScoring } from '../composables/useScoring'
 import ScatterPlot from '../components/ScatterPlot.vue'
 import InsightsPanel from '../components/InsightsPanel.vue'
 
-const router = useRouter()
 const { friends, hangouts } = useFriends()
 const { scoredFriends } = useScoring()
 
@@ -35,7 +33,7 @@ const recommendation = computed(() => {
       return (now - last) / dayMs <= 30
     })
   if (negativeActive.length > 0) {
-    const pick = negativeActive[0] // already sorted by gap asc
+    const pick = negativeActive[0]
     return {
       friend: pick.friend,
       text: `你应该找 ${pick.friend.name} 聊聊 — 你付出了很多但感觉一般，可以认真聊一次`,
@@ -71,10 +69,6 @@ const recommendation = computed(() => {
     color: 'from-amber-400 to-amber-500',
   }
 })
-
-function onSelectFriend(friend) {
-  router.push(`/friends/${friend.id}`)
-}
 </script>
 
 <template>
@@ -87,7 +81,6 @@ function onSelectFriend(friend) {
       v-if="recommendation"
       class="rounded-2xl p-4 text-white mb-4 shadow-md cursor-pointer bg-gradient-to-br"
       :class="recommendation.color"
-      @click="onSelectFriend(recommendation.friend)"
     >
       <p class="text-xs opacity-80 mb-1">💡 推荐</p>
       <p class="text-sm font-medium leading-relaxed">{{ recommendation.text }}</p>
@@ -115,7 +108,7 @@ function onSelectFriend(friend) {
     <div v-else>
       <h2 class="text-sm font-semibold text-gray-600 mb-2">友谊散点图</h2>
       <div class="bg-gray-50 rounded-xl p-3">
-        <ScatterPlot :scores="scoredFriends" @select="onSelectFriend" />
+        <ScatterPlot :scores="scoredFriends" />
       </div>
       <p class="text-xs text-gray-400 mt-2 text-center">
         <span class="text-green-500">●</span> 很值得

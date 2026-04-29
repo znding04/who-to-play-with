@@ -4,6 +4,12 @@
  * @property {string} name
  * @property {string[]} tags
  * @property {number} addedAt - timestamp
+ * @property {string} [phone]
+ * @property {string} [birthday] - YYYY-MM-DD
+ * @property {string} [location]
+ * @property {string} [howWeMet]
+ * @property {string[]} [importantEvents]
+ * @property {string[]} [values]
  */
 
 /**

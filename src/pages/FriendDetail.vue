@@ -57,11 +57,57 @@ function stars(n) {
     <template v-else>
       <!-- Friend name & tags -->
       <h1 class="text-xl font-bold text-gray-800 mb-1">{{ friend.name }}</h1>
-      <div v-if="friend.tags.length" class="flex flex-wrap gap-1.5 mb-4">
+      <div v-if="friend.tags && friend.tags.length" class="flex flex-wrap gap-1.5 mb-4">
         <span
           v-for="tag in friend.tags" :key="tag"
           class="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full"
         >{{ tag }}</span>
+      </div>
+
+      <!-- Basic info section -->
+      <div v-if="friend.phone || friend.birthday || friend.location || friend.howWeMet"
+        class="bg-gray-50 rounded-xl p-4 mb-4 space-y-2">
+        <h2 class="text-sm font-semibold text-gray-600 mb-2">基本信息</h2>
+        <div v-if="friend.phone" class="flex items-center gap-2 text-sm">
+          <span class="text-gray-400">📱</span>
+          <span class="text-gray-600">{{ friend.phone }}</span>
+        </div>
+        <div v-if="friend.birthday" class="flex items-center gap-2 text-sm">
+          <span class="text-gray-400">🎂</span>
+          <span class="text-gray-600">{{ friend.birthday }}</span>
+        </div>
+        <div v-if="friend.location" class="flex items-center gap-2 text-sm">
+          <span class="text-gray-400">📍</span>
+          <span class="text-gray-600">{{ friend.location }}</span>
+        </div>
+        <div v-if="friend.howWeMet" class="flex items-center gap-2 text-sm">
+          <span class="text-gray-400">🤝</span>
+          <span class="text-gray-600">{{ friend.howWeMet }}</span>
+        </div>
+      </div>
+
+      <!-- Values section -->
+      <div v-if="friend.values && friend.values.length"
+        class="bg-gray-50 rounded-xl p-4 mb-4">
+        <h2 class="text-sm font-semibold text-gray-600 mb-2">TA 的价值</h2>
+        <div class="flex flex-wrap gap-2">
+          <span
+            v-for="val in friend.values" :key="val"
+            class="px-3 py-1 bg-green-50 text-green-600 text-xs rounded-full"
+          >{{ val }}</span>
+        </div>
+      </div>
+
+      <!-- Important events section -->
+      <div v-if="friend.importantEvents && friend.importantEvents.length"
+        class="bg-gray-50 rounded-xl p-4 mb-4">
+        <h2 class="text-sm font-semibold text-gray-600 mb-2">重要时刻</h2>
+        <div class="space-y-1.5">
+          <div v-for="(event, i) in friend.importantEvents" :key="i" class="flex items-center gap-2 text-sm">
+            <span class="text-gray-400">✨</span>
+            <span class="text-gray-600">{{ event }}</span>
+          </div>
+        </div>
       </div>
 
       <!-- Gap indicator -->

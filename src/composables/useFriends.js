@@ -25,15 +25,28 @@ watch(hangouts, (val) => {
 }, { deep: true })
 
 export function useFriends() {
-  function addFriend({ name, tags = [] }) {
+  function addFriend({ name, tags = [], phone, birthday, location, howWeMet, importantEvents, values }) {
     const friend = {
       id: crypto.randomUUID(),
       name,
       tags,
       addedAt: Date.now(),
+      phone: phone || '',
+      birthday: birthday || '',
+      location: location || '',
+      howWeMet: howWeMet || '',
+      importantEvents: importantEvents || [],
+      values: values || [],
     }
     friends.value.push(friend)
     return friend
+  }
+
+  function updateFriend(id, updates) {
+    const idx = friends.value.findIndex(f => f.id === id)
+    if (idx < 0) return null
+    friends.value[idx] = { ...friends.value[idx], ...updates }
+    return friends.value[idx]
   }
 
   function deleteFriend(id) {
@@ -71,6 +84,7 @@ export function useFriends() {
     friends,
     hangouts,
     addFriend,
+    updateFriend,
     deleteFriend,
     getFriendById,
     addHangout,
