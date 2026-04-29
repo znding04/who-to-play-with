@@ -61,7 +61,7 @@ async function handleLogout() {
     <!-- GitHub repo link -->
     <a
       v-if="showLogin"
-      href="https://github.com/znding04/who-to-play-with"
+      href="https://github.com/znding04/who-to-hang-with"
       target="_blank"
       rel="noopener noreferrer"
       aria-label="GitHub 仓库"

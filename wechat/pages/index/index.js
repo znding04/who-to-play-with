@@ -1,6 +1,6 @@
 Page({
   data: {
-    url: 'https://example.com/who-to-play-with/index.html',
+    url: 'https://example.com/who-to-hang-with/index.html',
   },
   onLoad() {
     // URL to the hosted Vue app.

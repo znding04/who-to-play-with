@@ -1,8 +1,8 @@
-# 找谁玩 (Who To Play With)
+# 找谁玩 (Who To Hang With)
 
 > 量化管理你的朋友圈
 
-**Live app: https://who-to-play-with.ljding94.workers.dev/#**
+**Live app: https://who-to-hang-with.ljding94.workers.dev/#**
 
 A social relationship tracker (找谁玩) that helps you be intentional about friendships. Built as a WeChat Mini App compatible web app.
 
@@ -63,7 +63,7 @@ npm install -g wrangler
 ### 2. Create D1 Database
 
 ```bash
-wrangler d1 create who-to-play-with-db
+wrangler d1 create who-to-hang-with-db
 ```
 
 This will output a `database_id`. Add it to `wrangler.toml`:
@@ -71,20 +71,20 @@ This will output a `database_id`. Add it to `wrangler.toml`:
 ```toml
 [[d1_databases]]
 binding = "DB"
-database_name = "who-to-play-with-db"
+database_name = "who-to-hang-with-db"
 database_id = "YOUR_ACTUAL_DATABASE_ID"
 ```
 
 ### 3. Run Database Migrations
 
 ```bash
-wrangler d1 execute who-to-play-with-db --file=./schema.sql --remote
+wrangler d1 execute who-to-hang-with-db --file=./schema.sql --remote
 ```
 
 Or for local development:
 
 ```bash
-wrangler d1 execute who-to-play-with-db --file=./schema.sql --local
+wrangler d1 execute who-to-hang-with-db --file=./schema.sql --local
 ```
 
 ### 4. Create KV Namespace for JWT Secrets
@@ -110,7 +110,7 @@ For each OAuth provider, you need to create an application and set the credentia
 2. Create a project or select existing
 3. APIs & Services → Credentials → Create OAuth Client ID
 4. Application type: Web application
-5. Authorized redirect URI: `https://who-to-play-with.ljding94.workers.dev/api/auth/callback/google`
+5. Authorized redirect URI: `https://who-to-hang-with.ljding94.workers.dev/api/auth/callback/google`
 6. Set secrets:
 ```bash
 wrangler secret put GOOGLE_CLIENT_ID
@@ -119,8 +119,8 @@ wrangler secret put GOOGLE_CLIENT_SECRET
 
 **GitHub OAuth2:**
 1. Go to GitHub Settings → Developer settings → OAuth Apps → New OAuth App
-2. Homepage URL: `https://who-to-play-with.ljding94.workers.dev`
-3. Callback URL: `https://who-to-play-with.ljding94.workers.dev/api/auth/callback/github`
+2. Homepage URL: `https://who-to-hang-with.ljding94.workers.dev`
+3. Callback URL: `https://who-to-hang-with.ljding94.workers.dev/api/auth/callback/github`
 3. Set secrets:
 ```bash
 wrangler secret put GITHUB_CLIENT_ID
@@ -146,7 +146,7 @@ wrangler secret put APPLE_PRIVATE_KEY
 wrangler secret put JWT_SECRET
 # Generate with: openssl rand -base64 32
 wrangler secret put APP_BASE_URL
-# Set to: https://who-to-play-with.ljding94.workers.dev
+# Set to: https://who-to-hang-with.ljding94.workers.dev
 ```
 
 ### 6. Deploy the Worker
@@ -155,7 +155,7 @@ wrangler secret put APP_BASE_URL
 wrangler deploy
 ```
 
-This deploys to `who-to-play-with.ljding94.workers.dev`.
+This deploys to `who-to-hang-with.ljding94.workers.dev`.
 
 ---
 

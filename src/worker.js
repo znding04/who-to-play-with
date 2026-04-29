@@ -1,5 +1,5 @@
 /**
- * 找谁玩 (Who To Play With) - Cloudflare Worker
+ * 找谁玩 (Who To Hang With) - Cloudflare Worker
  * Backend API for auth, friends, and hangouts
  */
 
@@ -9,7 +9,7 @@
 
 const COOKIE_NAME = 'wtpw_session';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
-const DEFAULT_APP_BASE = 'https://who-to-play-with.ljding94.workers.dev';
+const DEFAULT_APP_BASE = 'https://who-to-hang-with.ljding94.workers.dev';
 
 // ============================================================
 // Router
@@ -287,7 +287,7 @@ async function exchangeGitHubCode(code, env) {
 
   // Get user info
   const userRes = await fetch('https://api.github.com/user', {
-    headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'who-to-play-with' },
+    headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'who-to-hang-with' },
   });
   if (!userRes.ok) return null;
   const userInfo = await userRes.json();
@@ -296,7 +296,7 @@ async function exchangeGitHubCode(code, env) {
   let email = userInfo.email;
   if (!email) {
     const emailRes = await fetch('https://api.github.com/user/emails', {
-      headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'who-to-play-with' },
+      headers: { Authorization: `Bearer ${accessToken}`, 'User-Agent': 'who-to-hang-with' },
     });
     if (emailRes.ok) {
       const emails = await emailRes.json();

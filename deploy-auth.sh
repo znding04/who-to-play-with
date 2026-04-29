@@ -9,7 +9,7 @@ npx wrangler whoami || { echo "❌ Run 'npx wrangler login' first"; exit 1; }
 
 echo ""
 echo "=== Step 2: Create D1 database ==="
-DB_OUTPUT=$(npx wrangler d1 create who-to-play-with-db 2>&1) || {
+DB_OUTPUT=$(npx wrangler d1 create who-to-hang-with-db 2>&1) || {
   if echo "$DB_OUTPUT" | grep -q "already exists"; then
     echo "Database already exists, continuing..."
     DB_OUTPUT=$(npx wrangler d1 list 2>&1)
@@ -35,14 +35,14 @@ echo "✅ Updated wrangler.toml with database_id"
 
 echo ""
 echo "=== Step 3: Run migrations ==="
-npx wrangler d1 execute who-to-play-with-db --file=./schema.sql --remote
+npx wrangler d1 execute who-to-hang-with-db --file=./schema.sql --remote
 echo "✅ Migrations complete"
 
 echo ""
 echo "=== Step 4: Set secrets ==="
 JWT=$(openssl rand -base64 32)
 echo "$JWT" | npx wrangler secret put JWT_SECRET
-echo "https://who-to-play-with.ljding94.workers.dev" | npx wrangler secret put APP_BASE_URL
+echo "https://who-to-hang-with.ljding94.workers.dev" | npx wrangler secret put APP_BASE_URL
 echo "✅ Secrets set"
 
 echo ""
@@ -57,7 +57,7 @@ echo "✅ Deployed!"
 
 echo ""
 echo "=== Done! ==="
-echo "Visit: https://who-to-play-with.ljding94.workers.dev/#/login"
+echo "Visit: https://who-to-hang-with.ljding94.workers.dev/#/login"
 echo ""
 echo "Next: Set up OAuth (optional for email/password auth):"
 echo "  GitHub: https://github.com/settings/developers → New OAuth App"

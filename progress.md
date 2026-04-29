@@ -8,7 +8,7 @@
 ### ✅ Completed
 - SPEC.md written and pushed
 - README.md written
-- GitHub repo created: znding04/who-to-play-with
+- GitHub repo created: znding04/who-to-hang-with
 - Vue 3 + Vite + Tailwind project scaffolded
 - Demo seed data (4 friends, 7 hangouts)
 - WeChat miniapp wrapper layer (wechat/ directory)
@@ -61,6 +61,7 @@
 
 ### ⏳ Pending
 - (deferred) Mini Program path: WeChat DevTools test with real appid, get WeChat account app ID
+- **ScatterPlot category filter** — let the user filter the scatter plot by hangout category (e.g. 🍜 吃饭, ✈️ 旅行, 💬 线上). Recompute each friend's quality/quantity using only hangouts of the selected type, so the user can see "who's good for which activity". UI: chip row above the plot with 全部 + each type. Should also include any custom types from `useCustomTypes`.
 
 ## [2026-04-29] — Auth Deployment Progress
 
@@ -80,15 +81,15 @@ Run these commands in order:
 npx wrangler login
 
 # 2. Create D1 database
-npx wrangler d1 create who-to-play-with-db
+npx wrangler d1 create who-to-hang-with-db
 # ⚠️ Copy the database_id from output and update wrangler.toml
 
 # 3. Run migrations
-npx wrangler d1 execute who-to-play-with-db --file=./schema.sql --remote
+npx wrangler d1 execute who-to-hang-with-db --file=./schema.sql --remote
 
 # 4. Set secrets
 openssl rand -base64 32 | npx wrangler secret put JWT_SECRET
-echo "https://who-to-play-with.ljding94.workers.dev" | npx wrangler secret put APP_BASE_URL
+echo "https://who-to-hang-with.ljding94.workers.dev" | npx wrangler secret put APP_BASE_URL
 
 # 5. Build and deploy
 npm run build
@@ -101,8 +102,8 @@ npx wrangler deploy
 1. Go to https://github.com/settings/developers
 2. Click "New OAuth App"
 3. App name: `找谁玩`
-4. Homepage URL: `https://who-to-play-with.ljding94.workers.dev`
-5. Authorization callback URL: `https://who-to-play-with.ljding94.workers.dev/api/auth/callback/github`
+4. Homepage URL: `https://who-to-hang-with.ljding94.workers.dev`
+5. Authorization callback URL: `https://who-to-hang-with.ljding94.workers.dev/api/auth/callback/github`
 6. Copy Client ID and Client Secret, then:
    ```bash
    npx wrangler secret put GITHUB_CLIENT_ID
@@ -112,7 +113,7 @@ npx wrangler deploy
 **Google OAuth**:
 1. Go to https://console.cloud.google.com/ → APIs & Services → Credentials
 2. Create OAuth 2.0 Client ID (Web application)
-3. Authorized redirect URIs: `https://who-to-play-with.ljding94.workers.dev/api/auth/callback/google`
+3. Authorized redirect URIs: `https://who-to-hang-with.ljding94.workers.dev/api/auth/callback/google`
 4. Copy Client ID and Secret, then:
    ```bash
    npx wrangler secret put GOOGLE_CLIENT_ID
@@ -136,7 +137,7 @@ npx wrangler deploy
 
 **Chosen route: A — H5 hosted publicly, shared via WeChat link / QR**
 
-- Live URL: https://who-to-play-with.ljding94.workers.dev/
+- Live URL: https://who-to-hang-with.ljding94.workers.dev/
 - Host: Cloudflare Pages (deployed via `ljding94` Cloudflare account; repo owned by `znding04`)
 - Build: `npm run build` → `dist/` (auto-deploys on push to `main`)
 - Distribution: paste link into WeChat chat, or generate a QR code
