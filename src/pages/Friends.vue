@@ -4,12 +4,20 @@ import { useRoute, useRouter } from 'vue-router'
 import { useFriends } from '../composables/useFriends'
 import { useScoring } from '../composables/useScoring'
 import { useGapThreshold } from '../composables/useGapThreshold'
+import { useDataFilter } from '../composables/useDataFilter'
 
 const router = useRouter()
 const route = useRoute()
-const { friends, addFriend, updateFriend, deleteFriend, getFriendById } = useFriends()
+const { friends, addFriend, updateFriend, deleteFriend, getFriendById, deleteSeedData, hasSeedData } = useFriends()
 const { scoredFriends } = useScoring()
 const { gapThreshold } = useGapThreshold()
+const { showSeed } = useDataFilter()
+
+function handleClearSeed() {
+  if (confirm('永久删除所有示例数据？此操作不可撤销。')) {
+    deleteSeedData()
+  }
+}
 
 function maybeOpenEditFromQuery() {
   const id = route.query.edit
@@ -124,6 +132,10 @@ function gapTone(gap) {
   if (gap < -gapThreshold.value) return 'text-rose-500'
   return 'text-stone-400'
 }
+
+const sortedFriends = computed(() =>
+  [...scoredFriends.value].sort((a, b) => b.gap - a.gap)
+)
 </script>
 
 <template>
@@ -141,6 +153,23 @@ function gapTone(gap) {
       >
         {{ showAdd ? '取消' : '+ 添加' }}
       </button>
+    </div>
+
+    <!-- Seed data filter -->
+    <div v-if="hasSeedData" class="flex items-center justify-between text-[12px] text-stone-500 mb-5 -mt-5">
+      <label class="flex items-center gap-2 cursor-pointer touch-manipulation">
+        <input
+          type="checkbox"
+          v-model="showSeed"
+          class="w-3.5 h-3.5"
+          style="accent-color: #1c1917"
+        />
+        显示示例数据
+      </label>
+      <button
+        @click="handleClearSeed"
+        class="text-[12px] text-stone-500 hover:text-rose-500 bg-transparent border-none cursor-pointer touch-manipulation"
+      >清除示例</button>
     </div>
 
     <!-- Add / Edit form -->
@@ -231,7 +260,7 @@ function gapTone(gap) {
     <!-- Friend list -->
     <div v-else class="rounded-xl overflow-hidden" style="border: 1px solid #ece9e4">
       <div
-        v-for="(s, i) in scoredFriends"
+        v-for="(s, i) in sortedFriends"
         :key="s.friend.id"
         class="flex items-center justify-between px-4 py-3.5 cursor-pointer active:bg-stone-50 transition-colors"
         :class="i > 0 ? 'border-t' : ''"

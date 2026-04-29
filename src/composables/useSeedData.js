@@ -1,17 +1,19 @@
-import { useFriends } from './useFriends'
+import { useFriends, _internalState } from './useFriends'
 
 const SEED_KEY = 'wtpw_seeded'
-const SEED_VERSION = '2'
+const SEED_VERSION = '3'
 
 export function useSeedData() {
-  const { friends, hangouts, addFriend, addHangout } = useFriends()
+  const { addFriend: addFriendBase, addHangout: addHangoutBase } = useFriends()
+  const addFriend = (props) => addFriendBase({ ...props, isSeed: true })
+  const addHangout = (props) => addHangoutBase({ ...props, isSeed: true })
 
   function seedIfEmpty() {
     if (localStorage.getItem(SEED_KEY) === SEED_VERSION) return
 
     // Wipe any prior seed / stale-schema data and reseed cleanly.
-    friends.value = []
-    hangouts.value = []
+    _internalState.friends.value = []
+    _internalState.hangouts.value = []
 
     const f1 = addFriend({ name: '李明', tags: ['大学', '球友'], phone: '13800001111', birthday: '1995-03-15', location: '北京', howWeMet: '大学同学', values: ['篮球搭档', '靠谱'], importantEvents: ['一起参加校篮球赛', '毕业旅行'] })
     const f2 = addFriend({ name: '王小红', tags: ['同事'], phone: '13800002222', birthday: '1993-07-22', location: '北京', howWeMet: '入职培训', values: ['工作伙伴', '咖啡爱好者'], importantEvents: ['一起完成Q3项目', '生日派对'] })
