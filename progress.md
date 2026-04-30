@@ -163,6 +163,35 @@ npx wrangler deploy
 - ⚠️ OAuth apps need manual creation in GitHub/Google consoles
 - ✅ Email/password auth will work immediately after deploy (no OAuth needed)
 
+### Manual Deployment Checklist (Run these commands)
+
+**Prerequisites:** Node.js installed, `wrangler` available via `npx wrangler`
+
+```bash
+# 1. Authenticate with Cloudflare (opens browser - do this once)
+cd ~/Work/who-to-hang-with
+npx wrangler login
+
+# 2. Set required secrets
+openssl rand -base64 32 | npx wrangler secret put JWT_SECRET
+echo "https://who-to-hang-with.ljding94.workers.dev" | npx wrangler secret put APP_BASE_URL
+
+# 3. Run D1 schema migration (this updates auth_tokens table)
+npx wrangler d1 execute who-to-hang-with-db --file=./schema.sql --remote
+
+# 4. (Optional) Set OAuth secrets if using Google/GitHub login
+npx wrangler secret put GOOGLE_CLIENT_ID
+npx wrangler secret put GOOGLE_CLIENT_SECRET
+npx wrangler secret put GITHUB_CLIENT_ID
+npx wrangler secret put GITHUB_CLIENT_SECRET
+
+# 5. Build and deploy
+npm run build
+npx wrangler deploy
+```
+
+After deploy, the app will be live at: https://who-to-hang-with.ljding94.workers.dev/#/
+
 ## Deployment
 
 **Chosen route: A — H5 hosted publicly, shared via WeChat link / QR**
