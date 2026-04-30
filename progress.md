@@ -1,7 +1,7 @@
 # 找谁玩 — Project Progress
 
 ## Last Updated
-2026-04-29 (i18n + PWA icons + UI polish)
+2026-04-30 (Auth security fixes + cloud sync)
 
 ## Current Status
 
@@ -75,6 +75,16 @@
 ### 🚧 In Progress
 - Auth deployment — see 2026-04-29 section below
 
+### 🔒 Security Fixes (2026-04-30)
+- ✅ JWT expiration now verified in `verifyJwt()` (exp claim checked)
+- ✅ OAuth state parameter now signed as JWT to prevent CSRF attacks (10-min expiry)
+- ✅ Magic token `user_id` changed from `''` to `NULL` in schema (FK constraint fix)
+- ✅ `getJwtSecret()` throws error if not configured in production
+- ✅ Fixed malformed error redirect URL (`/${'?error='}${error}` → `/#/login?error=${error}`)
+- ✅ Apple Sign In response_mode changed from `form_post` to `query`
+- ✅ Removed invalid CORS config (`Access-Control-Allow-Origin: *` + `credentials: true`)
+- ✅ wrangler added as dev dependency for deployment
+
 ### ⏳ Pending
 - (deferred) Mini Program path: WeChat DevTools test with real appid, get WeChat account app ID
 - **ScatterPlot category filter** — let the user filter the scatter plot by hangout category (e.g. 🍜 吃饭, ✈️ 旅行, 💬 线上). Recompute each friend's quality/quantity using only hangouts of the selected type, so the user can see "who's good for which activity". UI: chip row above the plot with 全部 + each type. Should also include any custom types from `useCustomTypes`.
@@ -87,16 +97,19 @@
 - Frontend build verified: `npm run build` succeeds
 - Auth code reviewed: email/password signup+login, OAuth (Google/GitHub/Apple), magic link all implemented
 - Auth callback flow verified: worker → `/#/auth-callback?token=...` → Login.vue `onMounted` → `handleAuthCallback`
+- **2026-04-30 Security fixes applied** (see above)
 
-### Deployment Steps (requires `npx wrangler login` first)
+### Deployment Steps (requires `wrangler login` or `CLOUDFLARE_API_TOKEN`)
 
 Run these commands in order:
 
 ```bash
-# 1. Authenticate wrangler (opens browser)
+# 1. Authenticate wrangler (opens browser) OR set API token
 npx wrangler login
+# OR for CI/non-interactive:
+# export CLOUDFLARE_API_TOKEN="your_token_here"
 
-# 2. Create D1 database
+# 2. Create D1 database (if not already created)
 npx wrangler d1 create who-to-hang-with-db
 # ⚠️ Copy the database_id from output and update wrangler.toml
 
@@ -142,11 +155,12 @@ npx wrangler deploy
 ### Status
 - ✅ Auth code written and reviewed
 - ✅ Frontend build passes
-- ✅ wrangler.toml cleaned up (KV removed)
-- ❌ D1 database not yet created (needs `wrangler login`)
-- ❌ Secrets not yet set (needs `wrangler login`)
-- ❌ Worker not yet deployed (needs `wrangler login`)
-- ❌ OAuth apps not yet created (needs manual setup in GitHub/Google consoles)
+- ✅ wrangler.toml configured with D1 binding (database_id: e717cd17-5944-4ea5-9291-37aa1a2c78f7)
+- ✅ Security fixes applied (JWT expiry, OAuth CSRF, magic token FK)
+- ⚠️ D1 database needs schema migration (run `wrangler d1 execute` with updated schema.sql)
+- ⚠️ Secrets not yet set (JWT_SECRET, APP_BASE_URL, OAuth credentials)
+- ⚠️ Worker not yet deployed
+- ⚠️ OAuth apps need manual creation in GitHub/Google consoles
 - ✅ Email/password auth will work immediately after deploy (no OAuth needed)
 
 ## Deployment
