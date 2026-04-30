@@ -940,16 +940,33 @@ router.add('DELETE', '/api/hangouts/:id', requireAuth(async (req, env, params, u
 
 router.add('GET', '/api/custom-types', requireAuth(async (req, env, params, url, user) => {
   const res = await env.DB
-    .prepare(`SELECT value, label, icon FROM custom_hangout_types WHERE user_id = ? ORDER BY created_at`)
+    .prepare(`SELECT DISTINCT value, label, icon FROM custom_hangout_types WHERE user_id = ? ORDER BY created_at`)
     .bind(user.userId)
     .all();
-  return json({ customTypes: res.results });
+  // Deduplicate by label (case-insensitive) — keep the first occurrence
+  const seenLabels = new Set();
+  const deduped = [];
+  for (const row of res.results) {
+    const lower = row.label.toLowerCase();
+    if (seenLabels.has(lower)) continue;
+    seenLabels.add(lower);
+    deduped.push(row);
+  }
+  return json({ customTypes: deduped });
 }));
 
 router.add('POST', '/api/custom-types', requireAuth(async (req, env, params, url, user) => {
   const body = await req.json();
   const { value, label, icon } = body;
   if (!value || !label) return json({ error: 'value and label required' }, 400);
+  // Check if a type with the same label already exists for this user
+  const existing = await env.DB
+    .prepare(`SELECT value FROM custom_hangout_types WHERE user_id = ? AND LOWER(label) = LOWER(?)`)
+    .bind(user.userId, label)
+    .first();
+  if (existing) {
+    return json({ customType: { value: existing.value, label, icon: icon || '📦' } }, 200);
+  }
   await env.DB
     .prepare(`INSERT OR REPLACE INTO custom_hangout_types (value, user_id, label, icon, created_at) VALUES (?, ?, ?, ?, ?)`)
     .bind(value, user.userId, label, icon || '📦', Date.now())
