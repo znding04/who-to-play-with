@@ -6,7 +6,7 @@ import { useScoring } from '../composables/useScoring'
 import { useGapThreshold } from '../composables/useGapThreshold'
 import { useCustomTypes } from '../composables/useCustomTypes'
 import { useI18n } from '../composables/useI18n.js'
-import { HANGOUT_TYPES, displayLabel } from '../types/index.js'
+import { HANGOUT_TYPES, displayLabel, getHangoutTypes } from '../types/index.js'
 import ScatterPlot from '../components/ScatterPlot.vue'
 
 const route = useRoute()
@@ -202,7 +202,9 @@ const infoRows = computed(() => {
           >
             <div class="flex items-center justify-between mb-1">
               <span class="text-[13.5px] font-medium text-stone-800">
-                {{ typeMap[h.type]?.icon || '' }} {{ typeLabel(h.type) }}
+                <template v-for="(tp, ti) in getHangoutTypes(h)" :key="tp">
+                  <span v-if="ti > 0" class="text-stone-300"> · </span>{{ typeMap[tp]?.icon || '' }} {{ typeLabel(tp) }}
+                </template>
               </span>
               <span class="text-[11.5px] text-stone-400 tabular-nums">{{ h.date }}</span>
             </div>

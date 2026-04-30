@@ -5,7 +5,7 @@ import { useFriends } from '../composables/useFriends'
 import { useCustomTypes } from '../composables/useCustomTypes'
 import { useCustomDurations } from '../composables/useCustomDurations'
 import { useI18n } from '../composables/useI18n.js'
-import { HANGOUT_TYPES, DURATION_OPTIONS, displayLabel } from '../types/index.js'
+import { HANGOUT_TYPES, DURATION_OPTIONS, displayLabel, getHangoutTypes } from '../types/index.js'
 
 const router = useRouter()
 const { friends, hangouts, deleteHangout } = useFriends()
@@ -149,7 +149,9 @@ const avgQuality = computed(() => {
 const mostCommonType = computed(() => {
   if (hangouts.value.length === 0) return null
   const counts = {}
-  hangouts.value.forEach((h) => { counts[h.type] = (counts[h.type] || 0) + 1 })
+  hangouts.value.forEach((h) => {
+    getHangoutTypes(h).forEach((tp) => { counts[tp] = (counts[tp] || 0) + 1 })
+  })
   const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
   if (!top) return null
   const info = typeMap.value[top[0]]
@@ -260,7 +262,9 @@ const thisMonthHangouts = computed(() => {
         >
           <div class="flex items-center justify-between mb-1">
             <span class="text-[14px] font-medium text-stone-800">
-              {{ typeMap[h.type]?.icon || '' }} {{ typeMap[h.type] ? (typeMap[h.type].labelKey ? t(typeMap[h.type].labelKey) : typeMap[h.type].label) : h.type }}
+              <template v-for="(tp, ti) in getHangoutTypes(h)" :key="tp">
+                <span v-if="ti > 0" class="text-stone-300"> · </span>{{ typeMap[tp]?.icon || '' }} {{ typeMap[tp] ? (typeMap[tp].labelKey ? t(typeMap[tp].labelKey) : typeMap[tp].label) : tp }}
+              </template>
             </span>
             <span class="text-[11.5px] text-amber-500 font-medium tabular-nums">★ {{ h.quality }}/10</span>
           </div>

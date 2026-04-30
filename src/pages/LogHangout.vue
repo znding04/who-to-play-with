@@ -5,7 +5,7 @@ import { useFriends } from '../composables/useFriends'
 import { useCustomTypes } from '../composables/useCustomTypes'
 import { useCustomDurations } from '../composables/useCustomDurations'
 import { useI18n } from '../composables/useI18n.js'
-import { HANGOUT_TYPES, DURATION_OPTIONS, displayLabel } from '../types/index.js'
+import { HANGOUT_TYPES, DURATION_OPTIONS, displayLabel, getHangoutTypes } from '../types/index.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -18,7 +18,7 @@ const editId = ref(null)
 const isEditMode = computed(() => !!editId.value)
 
 const selectedFriendIds = ref([])
-const hangoutType = ref('meal')
+const selectedTypes = ref(['meal'])
 const duration = ref('1hr')
 const quality = ref(6)
 const date = ref(new Date().toISOString().slice(0, 10))
@@ -55,7 +55,8 @@ onMounted(() => {
     if (hangout) {
       editId.value = editParam
       selectedFriendIds.value = [...(hangout.friendIds || [])]
-      hangoutType.value = hangout.type || 'meal'
+      const existing = getHangoutTypes(hangout)
+      selectedTypes.value = existing.length > 0 ? [...existing] : ['meal']
       duration.value = hangout.duration || '1hr'
       quality.value = hangout.quality || 6
       date.value = hangout.date || new Date().toISOString().slice(0, 10)
@@ -82,10 +83,19 @@ function handleAddFriend() {
   showAddFriend.value = false
 }
 
+function toggleType(value) {
+  const idx = selectedTypes.value.indexOf(value)
+  if (idx >= 0) {
+    selectedTypes.value.splice(idx, 1)
+  } else {
+    selectedTypes.value.push(value)
+  }
+}
+
 function handleAddType() {
   const created = addCustomType(newTypeLabel.value)
   if (created) {
-    hangoutType.value = created.value
+    if (!selectedTypes.value.includes(created.value)) selectedTypes.value.push(created.value)
     newTypeLabel.value = ''
     showAddType.value = false
   }
@@ -110,7 +120,8 @@ function startLongPress(item, kind) {
     if (confirm(t('log.confirmDeleteCustom', { kind: kindLabel, label: item.label }))) {
       if (kind === 'type') {
         removeCustomType(item.value)
-        if (hangoutType.value === item.value) hangoutType.value = 'meal'
+        selectedTypes.value = selectedTypes.value.filter((v) => v !== item.value)
+        if (selectedTypes.value.length === 0) selectedTypes.value = ['meal']
       } else {
         removeCustomDuration(item.value)
         if (duration.value === item.value) duration.value = '1hr'
@@ -125,14 +136,15 @@ function cancelLongPress() {
   }
 }
 
-const canSubmit = computed(() => selectedFriendIds.value.length > 0)
+const canSubmit = computed(() => selectedFriendIds.value.length > 0 && selectedTypes.value.length > 0)
 
 function submit() {
   if (!canSubmit.value) return
+  const types = [...selectedTypes.value]
   if (isEditMode.value) {
     updateHangout(editId.value, {
       friendIds: [...selectedFriendIds.value],
-      type: hangoutType.value,
+      types,
       duration: duration.value,
       quality: quality.value,
       note: note.value,
@@ -141,7 +153,7 @@ function submit() {
   } else {
     addHangout({
       friendIds: [...selectedFriendIds.value],
-      type: hangoutType.value,
+      types,
       duration: duration.value,
       quality: quality.value,
       note: note.value,
@@ -226,22 +238,25 @@ function submit() {
 
     <!-- Type picker -->
     <section class="mb-7">
-      <p class="text-[10px] uppercase tracking-[0.22em] text-stone-400 font-medium mb-3">{{ t('log.type') }}</p>
+      <div class="flex items-baseline gap-2 mb-3">
+        <p class="text-[10px] uppercase tracking-[0.22em] text-stone-400 font-medium">{{ t('log.type') }}</p>
+        <p class="text-[10px] text-stone-400">{{ t('log.typeHint') }}</p>
+      </div>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="tp in visibleTypes"
           :key="tp.value"
-          @click="hangoutType = tp.value"
+          @click="toggleType(tp.value)"
           @pointerdown="startLongPress(tp, 'type')"
           @pointerup="cancelLongPress"
           @pointerleave="cancelLongPress"
           @pointercancel="cancelLongPress"
           @contextmenu.prevent
           class="px-3.5 py-1.5 rounded-full text-[13px] cursor-pointer transition-colors select-none"
-          :class="hangoutType === tp.value
+          :class="selectedTypes.includes(tp.value)
             ? 'bg-stone-900 text-white'
             : 'bg-white text-stone-600'"
-          :style="hangoutType === tp.value ? 'border: 1px solid #1c1917' : 'border: 1px solid #ece9e4'"
+          :style="selectedTypes.includes(tp.value) ? 'border: 1px solid #1c1917' : 'border: 1px solid #ece9e4'"
         >
           {{ tp.icon }} {{ tp.label }}
         </button>

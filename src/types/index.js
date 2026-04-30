@@ -48,3 +48,10 @@ export function displayLabel(item, t) {
   if (!item) return ''
   return item.labelKey ? t(item.labelKey) : (item.label || '')
 }
+
+// Backwards-compat reader: hangouts stored before multi-type support only have `type`.
+export function getHangoutTypes(h) {
+  if (Array.isArray(h?.types) && h.types.length > 0) return h.types
+  if (h?.type) return [h.type]
+  return []
+}

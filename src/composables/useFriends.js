@@ -197,11 +197,13 @@ export function useFriends() {
     return _friends.value.find((f) => f.id === id)
   }
 
-  function addHangout({ friendIds, type, duration, quality, note, date, isSeed = false }) {
+  function addHangout({ friendIds, type, types, duration, quality, note, date, isSeed = false }) {
+    const resolvedTypes = Array.isArray(types) && types.length > 0 ? types : (type ? [type] : [])
     const hangout = {
       id: crypto.randomUUID(),
       friendIds,
-      type,
+      type: resolvedTypes[0] || type || '',
+      types: resolvedTypes,
       duration,
       quality,
       note: note || '',
@@ -221,11 +223,17 @@ export function useFriends() {
   function updateHangout(id, updates) {
     const idx = _hangouts.value.findIndex((h) => h.id === id)
     if (idx < 0) return null
-    _hangouts.value[idx] = { ..._hangouts.value[idx], ...updates }
+    const normalized = { ...updates }
+    if (Array.isArray(updates.types)) {
+      normalized.type = updates.types[0] || ''
+    } else if (updates.type !== undefined) {
+      normalized.types = updates.type ? [updates.type] : []
+    }
+    _hangouts.value[idx] = { ..._hangouts.value[idx], ...normalized }
 
     const { isLoggedIn } = useAuth()
     if (isLoggedIn.value) {
-      api.updateHangout(id, updates).catch((err) => console.error('Failed to sync hangout update:', err))
+      api.updateHangout(id, normalized).catch((err) => console.error('Failed to sync hangout update:', err))
     }
     return _hangouts.value[idx]
   }

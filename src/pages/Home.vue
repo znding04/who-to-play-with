@@ -5,7 +5,7 @@ import { useScoring } from '../composables/useScoring'
 import { useUnavailable } from '../composables/useUnavailable'
 import { useCustomTypes } from '../composables/useCustomTypes'
 import { useI18n } from '../composables/useI18n.js'
-import { HANGOUT_TYPES, displayLabel } from '../types/index.js'
+import { HANGOUT_TYPES, displayLabel, getHangoutTypes } from '../types/index.js'
 import ScatterPlot from '../components/ScatterPlot.vue'
 import InsightsPanel from '../components/InsightsPanel.vue'
 
@@ -46,9 +46,11 @@ function bestActivityFor(friendId) {
   if (fh.length === 0) return null
   const stats = {}
   for (const h of fh) {
-    if (!stats[h.type]) stats[h.type] = { sum: 0, count: 0 }
-    stats[h.type].sum += h.quality
-    stats[h.type].count++
+    for (const tp of getHangoutTypes(h)) {
+      if (!stats[tp]) stats[tp] = { sum: 0, count: 0 }
+      stats[tp].sum += h.quality
+      stats[tp].count++
+    }
   }
   let bestType = null
   let bestAvg = -Infinity

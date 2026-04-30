@@ -1,18 +1,43 @@
 import { computed } from 'vue'
 import { useFriends } from './useFriends'
 import { useViewMode } from './useViewMode'
+import { useFrequencyMode } from './useFrequencyMode'
 
-// Duration multiplier for quantity scoring
+// Duration multiplier for lifetime quantity scoring (compressed, not real hours)
 const DURATION_MULT = { '30min': 0.5, '1hr': 1, '2hr': 1.5, 'halfday': 2, 'fullday': 3, 'trip': 4 }
 
-function computeRawQuantityScore(friendId, hangouts) {
+// Real hours per duration bucket — used for the per-month rate metric
+const DURATION_HOURS = { '30min': 0.5, '1hr': 1, '2hr': 2, 'halfday': 4, 'fullday': 8, 'trip': 24 }
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24
+const DAYS_PER_MONTH = 30
+
+function computeRawLifetimeScore(friendId, hangouts) {
   const friendHangouts = hangouts.filter(h => h.friendIds.includes(friendId))
   if (friendHangouts.length === 0) return 0
   const total = friendHangouts.reduce((sum, h) => sum + (DURATION_MULT[h.duration] || 1), 0)
   const lastDate = friendHangouts.map(h => new Date(h.date)).reduce((max, d) => d > max ? d : max, new Date(0))
-  const daysSince = (Date.now() - lastDate) / (1000 * 60 * 60 * 24)
+  const daysSince = (Date.now() - lastDate) / MS_PER_DAY
   const decay = Math.exp(-daysSince / 60)
   return Math.log(1 + total) * 25 * (0.3 + 0.7 * decay)
+}
+
+function computeRawPerMonthScore(friendId, hangouts) {
+  const friendHangouts = hangouts.filter(h => h.friendIds.includes(friendId))
+  if (friendHangouts.length === 0) return 0
+  const totalHours = friendHangouts.reduce((sum, h) => sum + (DURATION_HOURS[h.duration] || 1), 0)
+  const firstDate = friendHangouts.map(h => new Date(h.date)).reduce((min, d) => d < min ? d : min, new Date())
+  const daysSinceFirst = Math.max(0, (Date.now() - firstDate) / MS_PER_DAY)
+  // Floor at half a month so a brand-new friend with one hangout doesn't dominate the axis.
+  const months = Math.max(0.5, daysSinceFirst / DAYS_PER_MONTH)
+  const hoursPerMonth = totalHours / months
+  return Math.log(1 + hoursPerMonth) * 25
+}
+
+function computeRawQuantityScore(friendId, hangouts, freqMode) {
+  return freqMode === 'permonth'
+    ? computeRawPerMonthScore(friendId, hangouts)
+    : computeRawLifetimeScore(friendId, hangouts)
 }
 
 function computeRawQualityScore(friendId, hangouts) {
@@ -25,10 +50,10 @@ function computeRawQualityScore(friendId, hangouts) {
   return avgQuality * 10
 }
 
-function computeRawScores(friends, hangouts) {
+function computeRawScores(friends, hangouts, freqMode) {
   return friends.map(friend => ({
     friend,
-    rawQ: computeRawQuantityScore(friend.id, hangouts),
+    rawQ: computeRawQuantityScore(friend.id, hangouts, freqMode),
     rawY: computeRawQualityScore(friend.id, hangouts),
   }))
 }
@@ -72,9 +97,10 @@ function absoluteScores(rawScores) {
 export function useScoring() {
   const { friends, hangouts } = useFriends()
   const { mode } = useViewMode()
+  const { freqMode } = useFrequencyMode()
 
   const scoredFriends = computed(() => {
-    const raw = computeRawScores(friends.value, hangouts.value)
+    const raw = computeRawScores(friends.value, hangouts.value, freqMode.value)
     const scored = mode.value === 'absolute' ? absoluteScores(raw) : normalizeScores(raw)
     return scored.sort((a, b) => a.gap - b.gap)
   })
