@@ -3,6 +3,7 @@ import { useFriends } from './useFriends'
 import { useViewMode } from './useViewMode'
 import { useFrequencyMode } from './useFrequencyMode'
 import { useCustomDurations } from './useCustomDurations'
+import { usePlotExclusions } from './usePlotExclusions'
 
 // Duration multiplier for lifetime quantity scoring (compressed, not real hours)
 const DURATION_MULT = { '30min': 0.5, '1hr': 1, '2hr': 1.5, 'halfday': 2, 'fullday': 3, 'trip': 4 }
@@ -121,9 +122,11 @@ export function useScoring() {
   const { mode } = useViewMode()
   const { freqMode } = useFrequencyMode()
   const { customDurations } = useCustomDurations()
+  const { isExcluded } = usePlotExclusions()
 
   const scoredFriends = computed(() => {
-    const raw = computeRawScores(friends.value, hangouts.value, freqMode.value, customDurations.value)
+    const includedFriends = friends.value.filter(f => !isExcluded(f.id))
+    const raw = computeRawScores(includedFriends, hangouts.value, freqMode.value, customDurations.value)
     const scored = mode.value === 'absolute' ? absoluteScores(raw) : normalizeScores(raw)
     return scored.sort((a, b) => a.gap - b.gap)
   })

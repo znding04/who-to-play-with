@@ -6,6 +6,7 @@ import { useScoring } from '../composables/useScoring'
 import { useGapThreshold } from '../composables/useGapThreshold'
 import { useDataFilter } from '../composables/useDataFilter'
 import { useI18n } from '../composables/useI18n.js'
+import { usePlotExclusions } from '../composables/usePlotExclusions'
 
 const router = useRouter()
 const route = useRoute()
@@ -14,6 +15,7 @@ const { scoredFriends } = useScoring()
 const { gapThreshold } = useGapThreshold()
 const { showSeed } = useDataFilter()
 const { t } = useI18n()
+const { isExcluded } = usePlotExclusions()
 
 function handleClearSeed() {
   if (confirm(t('friends.confirmClearSeed'))) {
@@ -271,7 +273,14 @@ const sortedFriends = computed(() =>
         @click="router.push(`/friends/${s.friend.id}`)"
       >
         <div class="min-w-0 flex-1">
-          <p class="text-[14px] font-medium text-stone-900 truncate">{{ s.friend.name }}</p>
+          <p class="text-[14px] font-medium text-stone-900 truncate">
+            {{ s.friend.name }}
+            <svg v-if="isExcluded(s.friend.id)" class="inline-block ml-1 text-stone-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+              <line x1="1" y1="1" x2="23" y2="23" />
+            </svg>
+          </p>
           <p v-if="s.friend.tags.length" class="text-[11.5px] text-stone-400 mt-0.5 truncate">
             {{ s.friend.tags.join(' · ') }}
           </p>

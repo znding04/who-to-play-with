@@ -6,6 +6,7 @@ import { useScoring } from '../composables/useScoring'
 import { useGapThreshold } from '../composables/useGapThreshold'
 import { useCustomTypes } from '../composables/useCustomTypes'
 import { useI18n } from '../composables/useI18n.js'
+import { usePlotExclusions } from '../composables/usePlotExclusions'
 import { HANGOUT_TYPES, displayLabel, getHangoutTypes } from '../types/index.js'
 import ScatterPlot from '../components/ScatterPlot.vue'
 
@@ -16,6 +17,13 @@ const { scoredFriends } = useScoring()
 const { gapThreshold } = useGapThreshold()
 const { customTypes } = useCustomTypes()
 const { t } = useI18n()
+const { isExcluded, toggleExclusion } = usePlotExclusions()
+
+const excludedFromPlot = computed(() => isExcluded(friendId.value))
+
+function handleToggleExclusion() {
+  toggleExclusion(friendId.value)
+}
 
 function handleEdit() {
   if (!friend.value) return
@@ -125,6 +133,36 @@ const infoRows = computed(() => {
         >{{ tag }}</span>
       </div>
       <div v-else class="mb-7"></div>
+
+      <!-- Exclude from plot toggle -->
+      <div class="flex items-center justify-between mb-7 py-3 px-4 rounded-xl" style="border: 1px solid #ece9e4">
+        <div class="flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" :class="excludedFromPlot ? 'text-stone-400' : 'text-stone-500'">
+            <template v-if="excludedFromPlot">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+              <line x1="1" y1="1" x2="23" y2="23" />
+            </template>
+            <template v-else>
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </template>
+          </svg>
+          <span class="text-[13px] text-stone-600">Exclude from scatter plot</span>
+        </div>
+        <button
+          @click="handleToggleExclusion"
+          class="relative w-10 h-5.5 rounded-full border-none cursor-pointer transition-colors touch-manipulation"
+          :class="excludedFromPlot ? 'bg-stone-900' : 'bg-stone-200'"
+          style="width: 40px; height: 22px;"
+        >
+          <span
+            class="absolute top-0.5 rounded-full bg-white transition-transform"
+            style="width: 18px; height: 18px;"
+            :style="{ left: excludedFromPlot ? '20px' : '2px' }"
+          ></span>
+        </button>
+      </div>
 
       <!-- Gap indicator -->
       <div v-if="friendScore" class="mb-9 pb-7 border-b" style="border-color: #ece9e4">
