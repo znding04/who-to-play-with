@@ -7,7 +7,8 @@ import { useGapThreshold } from '../composables/useGapThreshold'
 import { useCustomTypes } from '../composables/useCustomTypes'
 import { useI18n } from '../composables/useI18n.js'
 import { usePlotExclusions } from '../composables/usePlotExclusions'
-import { HANGOUT_TYPES, displayLabel, getHangoutTypes } from '../types/index.js'
+import { HANGOUT_TYPES, DURATION_OPTIONS, displayLabel, getHangoutTypes } from '../types/index.js'
+import { useCustomDurations } from '../composables/useCustomDurations'
 import ScatterPlot from '../components/ScatterPlot.vue'
 
 const route = useRoute()
@@ -18,6 +19,19 @@ const { gapThreshold } = useGapThreshold()
 const { customTypes } = useCustomTypes()
 const { t } = useI18n()
 const { isExcluded, toggleExclusion } = usePlotExclusions()
+const { customDurations } = useCustomDurations()
+
+const durationMap = computed(() => {
+  const map = {}
+  for (const d of [...DURATION_OPTIONS, ...customDurations.value]) {
+    map[d.value] = displayLabel(d, t)
+  }
+  return map
+})
+
+function durationLabel(value) {
+  return durationMap.value[value] || value
+}
 
 const excludedFromPlot = computed(() => isExcluded(friendId.value))
 
@@ -247,7 +261,7 @@ const infoRows = computed(() => {
               <span class="text-[11.5px] text-stone-400 tabular-nums">{{ h.date }}</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-[11.5px] text-stone-400">{{ h.duration }}</span>
+              <span class="text-[11.5px] text-stone-400">{{ durationLabel(h.duration) }}</span>
               <span class="text-[11.5px] text-amber-500 font-medium tabular-nums">★ {{ rating(h.quality) }}</span>
             </div>
             <p v-if="h.note" class="text-[12.5px] text-stone-500 mt-1.5 leading-relaxed">{{ h.note }}</p>
