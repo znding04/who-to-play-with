@@ -76,27 +76,25 @@ function computeRawScores(friends, hangouts, freqMode, customDurations) {
 }
 
 /**
- * Z-score normalization: places the population mean at (50, 50) with a scale
- * such that ~68% of friends fall between 30 and 70. Stable as data grows.
+ * Range-based normalization: scales scores so the top friend = 100 and the
+ * bottom friend = 0, making scores intuitive percentages of the observed range.
+ * Better than Z-score for relative ranking ("who to hang out with more").
  */
 function normalizeScores(rawScores) {
   const nonZeroQ = rawScores.filter(s => s.rawQ > 0).map(s => s.rawQ)
   const nonZeroY = rawScores.filter(s => s.rawY > 0).map(s => s.rawY)
 
-  const meanQ = nonZeroQ.length > 0 ? nonZeroQ.reduce((a, b) => a + b, 0) / nonZeroQ.length : 0
-  const meanY = nonZeroY.length > 0 ? nonZeroY.reduce((a, b) => a + b, 0) / nonZeroY.length : 0
+  const minQ = nonZeroQ.length > 0 ? Math.min(...nonZeroQ) : 0
+  const maxQ = nonZeroQ.length > 0 ? Math.max(...nonZeroQ) : 0
+  const minY = nonZeroY.length > 0 ? Math.min(...nonZeroY) : 0
+  const maxY = nonZeroY.length > 0 ? Math.max(...nonZeroY) : 0
 
-  const stdQ = nonZeroQ.length > 0 ? Math.sqrt(nonZeroQ.reduce((s, v) => s + (v - meanQ) ** 2, 0) / nonZeroQ.length) : 1
-  const stdY = nonZeroY.length > 0 ? Math.sqrt(nonZeroY.reduce((s, v) => s + (v - meanY) ** 2, 0) / nonZeroY.length) : 1
-
-  const SCALE = 20
-  const OFFSET = 50
-  const safeStdQ = stdQ < 1 ? 1 : stdQ
-  const safeStdY = stdY < 1 ? 1 : stdY
+  const rangeQ = maxQ - minQ
+  const rangeY = maxY - minY
 
   return rawScores.map(({ friend, rawQ, rawY }) => {
-    const quantity = rawQ > 0 ? Math.min(100, Math.max(0, ((rawQ - meanQ) / safeStdQ) * SCALE + OFFSET)) : 0
-    const quality = rawY > 0 ? Math.min(100, Math.max(0, ((rawY - meanY) / safeStdY) * SCALE + OFFSET)) : 0
+    const quantity = rawQ > 0 ? (rangeQ > 0 ? Math.round(((rawQ - minQ) / rangeQ) * 100) : 50) : 0
+    const quality = rawY > 0 ? (rangeY > 0 ? Math.round(((rawY - minY) / rangeY) * 100) : 50) : 0
     return { friend, quantity, quality, gap: quality - quantity }
   })
 }
