@@ -14,6 +14,10 @@ const _user = ref(null);
 const _loading = ref(true);
 const _error = ref(null);
 
+// Guard: when an OAuth callback is being processed, refreshSession must not
+// clear the user state (prevents race condition on first Google login).
+let _callbackInProgress = false;
+
 // Load persisted auth state
 function loadAuth() {
   try {
@@ -30,6 +34,33 @@ function loadAuth() {
 
 loadAuth();
 
+// Re-validate session when the tab becomes visible again (fixes auto-logout
+// when the page has been in the background).
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      // Restore persisted user immediately so the UI doesn't flash logged-out
+      loadAuth();
+      // Then verify the token is still valid with the backend
+      const token = localStorage.getItem('wtpw_token');
+      if (token) {
+        api.getMe()
+          .then((data) => {
+            _user.value = data.user;
+            localStorage.setItem(AUTH_KEY, JSON.stringify({ user: data.user }));
+          })
+          .catch(() => {
+            // Token expired server-side — clear auth
+            _user.value = null;
+            localStorage.removeItem('wtpw_token');
+            localStorage.removeItem(AUTH_KEY);
+            document.cookie = 'wtpw_session=; path=/; max-age=0';
+          });
+      }
+    }
+  });
+}
+
 export function useAuth() {
   const user = computed(() => _user.value);
   const isLoggedIn = computed(() => !!_user.value);
@@ -40,6 +71,9 @@ export function useAuth() {
    * Try to restore session from backend (verifies JWT is still valid)
    */
   async function refreshSession() {
+    // Don't clear auth state while an OAuth callback is being handled
+    if (_callbackInProgress) return false;
+
     if (!localStorage.getItem('wtpw_token') && !document.cookie.includes('wtpw_session')) {
       _user.value = null;
       return false;
@@ -51,9 +85,11 @@ export function useAuth() {
       localStorage.setItem(AUTH_KEY, JSON.stringify({ user: data.user }));
       return true;
     } catch (err) {
-      // Token invalid
-      _user.value = null;
-      localStorage.removeItem('wtpw_token');
+      // Token invalid — but don't clear if a callback arrived in the meantime
+      if (!_callbackInProgress) {
+        _user.value = null;
+        localStorage.removeItem('wtpw_token');
+      }
       return false;
     } finally {
       _loading.value = false;
@@ -65,6 +101,7 @@ export function useAuth() {
    */
   async function handleAuthCallback(token) {
     if (!token) return false;
+    _callbackInProgress = true;
     localStorage.setItem('wtpw_token', token);
     // Also set as cookie for Worker API
     document.cookie = `wtpw_session=${token}; path=/; max-age=${60 * 60 * 24 * 30}`;
@@ -84,6 +121,7 @@ export function useAuth() {
       _error.value = err.message;
       return false;
     } finally {
+      _callbackInProgress = false;
       _loading.value = false;
     }
   }
