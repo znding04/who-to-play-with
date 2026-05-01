@@ -133,8 +133,20 @@ export function useScoring() {
 
   const scoredFriends = computed(() => {
     const raw = computeRawScores(friends.value, hangouts.value, freqMode.value, customDurations.value)
-    const scored = mode.value === 'absolute' ? absoluteScores(raw) : normalizeScores(raw, scaleMode.value)
-    return scored.sort((a, b) => a.gap - b.gap)
+
+    // Split: normalization should only consider non-excluded friends
+    const includedRaw = raw.filter(s => !isExcluded(s.friend.id))
+    const excludedRaw = raw.filter(s => isExcluded(s.friend.id))
+
+    const scored = mode.value === 'absolute' ? absoluteScores(includedRaw) : normalizeScores(includedRaw, scaleMode.value)
+    const excludedScored = excludedRaw.map(({ friend }) => ({ friend, quantity: NaN, quality: NaN, gap: NaN }))
+
+    return [...scored, ...excludedScored].sort((a, b) => {
+      if (isNaN(a.gap) && isNaN(b.gap)) return 0
+      if (isNaN(a.gap)) return 1
+      if (isNaN(b.gap)) return -1
+      return a.gap - b.gap
+    })
   })
 
   const plotScores = computed(() =>
