@@ -42,7 +42,7 @@ echo ""
 echo "=== Step 4: Set secrets ==="
 JWT=$(openssl rand -base64 32)
 echo "$JWT" | npx wrangler secret put JWT_SECRET
-echo "https://who-to-hang-with.ljding94.workers.dev" | npx wrangler secret put APP_BASE_URL
+echo "https://hangwith.ljding.app" | npx wrangler secret put APP_BASE_URL
 echo "✅ Secrets set"
 
 echo ""
@@ -57,7 +57,7 @@ echo "✅ Deployed!"
 
 echo ""
 echo "=== Done! ==="
-echo "Visit: https://who-to-hang-with.ljding94.workers.dev/#/login"
+echo "Visit: https://hangwith.ljding.app/#/login"
 echo ""
 echo "Next: Set up OAuth (optional for email/password auth):"
 echo "  GitHub: https://github.com/settings/developers → New OAuth App"
