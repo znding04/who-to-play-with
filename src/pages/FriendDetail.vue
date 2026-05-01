@@ -7,8 +7,11 @@ import { useGapThreshold } from '../composables/useGapThreshold'
 import { useCustomTypes } from '../composables/useCustomTypes'
 import { useI18n } from '../composables/useI18n.js'
 import { usePlotExclusions } from '../composables/usePlotExclusions'
+import { useScaleMode } from '../composables/useScaleMode'
+import { useViewMode } from '../composables/useViewMode'
 import { HANGOUT_TYPES, DURATION_OPTIONS, displayLabel, getHangoutTypes } from '../types/index.js'
 import { useCustomDurations } from '../composables/useCustomDurations'
+import { computeFriendActivityPlotScores } from '../composables/useActivityScoring'
 import ScatterPlot from '../components/ScatterPlot.vue'
 
 const route = useRoute()
@@ -20,6 +23,8 @@ const { customTypes } = useCustomTypes()
 const { t } = useI18n()
 const { isExcluded, toggleExclusion } = usePlotExclusions()
 const { customDurations } = useCustomDurations()
+const { scaleMode } = useScaleMode()
+const { mode: viewMode } = useViewMode()
 
 const durationMap = computed(() => {
   const map = {}
@@ -73,6 +78,13 @@ function typeLabel(type) {
   const info = typeMap.value[type]
   return info ? displayLabel(info, t) : displayLabel(type, t)
 }
+
+const friendActivityScores = computed(() => {
+  if (friendHangouts.value.length === 0) return []
+  return computeFriendActivityPlotScores(
+    friendHangouts.value, typeMap.value, t, scaleMode.value, viewMode.value
+  )
+})
 
 function gapText(gap) {
   if (gap < -gapThreshold.value) return t('friendDetail.gapInvested', { name: friend.value.name })
@@ -231,11 +243,11 @@ const infoRows = computed(() => {
         </div>
       </div>
 
-      <!-- Mini scatter -->
-      <div v-if="scoredFriends.length > 0" class="mb-9">
-        <p class="text-[10px] uppercase tracking-[0.22em] text-stone-400 font-medium mb-3">{{ t('friendDetail.scatterPosition') }}</p>
+      <!-- Activity scatter for this friend -->
+      <div v-if="friendActivityScores.length > 0" class="mb-9">
+        <p class="text-[10px] uppercase tracking-[0.22em] text-stone-400 font-medium mb-3">{{ t('friendDetail.activityScatter') }}</p>
         <div class="rounded-xl p-3" style="border: 1px solid #ece9e4; background: #fbfaf7">
-          <ScatterPlot :scores="plotScores" :highlight-id="friendId" :show-tuner="false" />
+          <ScatterPlot :scores="friendActivityScores" :activity-mode="true" :show-tuner="false" :dim-others="false" />
         </div>
       </div>
 

@@ -1,7 +1,8 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useFriends } from '../composables/useFriends'
 import { useScoring } from '../composables/useScoring'
+import { useActivityScoring } from '../composables/useActivityScoring'
 import { useUnavailable } from '../composables/useUnavailable'
 import { useCustomTypes } from '../composables/useCustomTypes'
 import { useI18n } from '../composables/useI18n.js'
@@ -11,9 +12,12 @@ import InsightsPanel from '../components/InsightsPanel.vue'
 
 const { friends, hangouts } = useFriends()
 const { scoredFriends, plotScores } = useScoring()
+const { activityPlotScores } = useActivityScoring()
 const { isUnavailable, markUnavailable, resetToday, count: unavailableCount } = useUnavailable()
 const { customTypes } = useCustomTypes()
 const { t } = useI18n()
+
+const scatterMode = ref('friends') // 'friends' | 'activities'
 
 const friendCount = computed(() => friends.value.length)
 
@@ -168,9 +172,36 @@ const toneDot = {
 
     <!-- Scatter -->
     <div v-else>
-      <p class="text-[10px] uppercase tracking-[0.22em] text-stone-400 font-medium mb-3">{{ t('home.scatterTitle') }}</p>
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-[10px] uppercase tracking-[0.22em] text-stone-400 font-medium">{{ t('home.scatterTitle') }}</p>
+        <div class="flex gap-1">
+          <button
+            type="button"
+            @click="scatterMode = 'friends'"
+            class="px-2.5 py-0.5 rounded-full text-[11px] border-none cursor-pointer transition-colors touch-manipulation"
+            :class="scatterMode === 'friends' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500'"
+          >{{ t('home.scatterFriends') }}</button>
+          <button
+            type="button"
+            @click="scatterMode = 'activities'"
+            class="px-2.5 py-0.5 rounded-full text-[11px] border-none cursor-pointer transition-colors touch-manipulation"
+            :class="scatterMode === 'activities' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500'"
+          >{{ t('home.scatterActivities') }}</button>
+        </div>
+      </div>
       <div class="rounded-lg p-3 border" style="border-color: #ece9e4; background: #fbfaf7">
-        <ScatterPlot :scores="plotScores" :highlight-id="recommendation?.friend.id || null" :dim-others="false" />
+        <ScatterPlot
+          v-if="scatterMode === 'friends'"
+          :scores="plotScores"
+          :highlight-id="recommendation?.friend.id || null"
+          :dim-others="false"
+        />
+        <ScatterPlot
+          v-else
+          :scores="activityPlotScores"
+          :activity-mode="true"
+          :dim-others="false"
+        />
       </div>
       <div class="flex justify-center gap-5 text-[11px] text-stone-500 mt-3">
         <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>{{ t('home.legend.worth') }}</span>

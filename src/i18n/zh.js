@@ -23,6 +23,8 @@ export default {
     weeklyHangouts: '本周聚会',
     emptyState: '添加朋友开始记录吧',
     scatterTitle: '友谊散点图',
+    scatterFriends: '朋友',
+    scatterActivities: '活动',
     legend: {
       worth: '很值得',
       balanced: '平衡',

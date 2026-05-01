@@ -15,6 +15,8 @@ const props = defineProps({
   // When true (default), non-highlighted dots fade. Set false on Home so the
   // recommended star pops without dimming the rest of the picture.
   dimOthers: { type: Boolean, default: true },
+  // Activity mode: scores have { id, label } instead of { friend }
+  activityMode: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['select'])
@@ -65,9 +67,16 @@ const bandPoints = computed(() => {
   return pts.map(([qx, qy]) => `${x(qx)},${y(qy)}`).join(' ')
 })
 
+// Helpers to abstract friend vs activity mode
+function itemId(s) { return props.activityMode ? s.id : s.friend.id }
+function itemName(s) { return props.activityMode ? s.label : s.friend.name }
+function itemTags(s) { return props.activityMode ? null : s.friend?.tags }
+
 function handleDotClick(s) {
   popup.value = {
-    friend: s.friend,
+    id: itemId(s),
+    name: itemName(s),
+    tags: itemTags(s),
     quantity: s.quantity,
     quality: s.quality,
     gap: s.gap,
@@ -90,8 +99,8 @@ function starPoints(cx, cy, r) {
 // Render order: highlighted last so the star sits on top of any nearby dots.
 const orderedScores = computed(() => {
   if (!props.highlightId) return props.scores
-  const others = props.scores.filter((s) => s.friend.id !== props.highlightId)
-  const highlighted = props.scores.find((s) => s.friend.id === props.highlightId)
+  const others = props.scores.filter((s) => itemId(s) !== props.highlightId)
+  const highlighted = props.scores.find((s) => itemId(s) === props.highlightId)
   return highlighted ? [...others, highlighted] : others
 })
 
@@ -145,20 +154,20 @@ function gapToneClass(gap) {
       <line :x1="x(50) - 6" :y1="y(50)" :x2="x(50) + 6" :y2="y(50)" stroke="#a8a29e" stroke-width="1" />
       <line :x1="x(50)" :y1="y(50) - 6" :x2="x(50)" :y2="y(50) + 6" stroke="#a8a29e" stroke-width="1" />
 
-      <!-- Friend dots / star -->
-      <g v-for="s in orderedScores" :key="s.friend.id" class="cursor-pointer" @click="handleDotClick(s)">
+      <!-- Data dots / star -->
+      <g v-for="s in orderedScores" :key="activityMode ? s.id : s.friend.id" class="cursor-pointer" @click="handleDotClick(s)">
         <text
           :x="x(s.quantity)"
-          :y="y(s.quality) - (highlightId === s.friend.id ? 17 : 13)"
+          :y="y(s.quality) - (highlightId === (activityMode ? s.id : s.friend.id) ? 17 : 13)"
           text-anchor="middle"
-          :font-size="highlightId === s.friend.id ? 10 : 9"
-          :font-weight="highlightId === s.friend.id ? 600 : 400"
+          :font-size="highlightId === (activityMode ? s.id : s.friend.id) ? 10 : 9"
+          :font-weight="highlightId === (activityMode ? s.id : s.friend.id) ? 600 : 400"
           fill="#44403c"
-          :opacity="dimOthers && highlightId && highlightId !== s.friend.id ? 0.2 : 0.85"
-        >{{ s.friend.name }}</text>
+          :opacity="dimOthers && highlightId && highlightId !== (activityMode ? s.id : s.friend.id) ? 0.2 : 0.85"
+        >{{ activityMode ? s.label : s.friend.name }}</text>
 
         <polygon
-          v-if="highlightId === s.friend.id"
+          v-if="highlightId === (activityMode ? s.id : s.friend.id)"
           :points="starPoints(x(s.quantity), y(s.quality), 12)"
           :fill="dotColor(s.gap)"
           stroke="#1c1917"
@@ -173,7 +182,7 @@ function gapToneClass(gap) {
           stroke="white"
           stroke-width="1"
         />
-        <title>{{ s.friend.name }} ({{ t('scatter.tooltipFreq') }}: {{ Math.round(s.quantity) }}, {{ t('scatter.tooltipQual') }}: {{ Math.round(s.quality) }})</title>
+        <title>{{ activityMode ? s.label : s.friend.name }} ({{ t('scatter.tooltipFreq') }}: {{ Math.round(s.quantity) }}, {{ t('scatter.tooltipQual') }}: {{ Math.round(s.quality) }})</title>
       </g>
     </svg>
 
@@ -246,13 +255,15 @@ function gapToneClass(gap) {
       >✕</button>
 
       <router-link
-        :to="`/friends/${popup.friend.id}`"
+        v-if="!activityMode"
+        :to="`/friends/${popup.id}`"
         class="block font-semibold text-stone-900 text-base mb-1 no-underline"
         @click="closePopup"
-      >{{ popup.friend.name }} ›</router-link>
+      >{{ popup.name }} ›</router-link>
+      <span v-else class="block font-semibold text-stone-900 text-base mb-1">{{ popup.name }}</span>
 
-      <p v-if="popup.friend.tags && popup.friend.tags.length" class="text-[11px] text-stone-400 mb-2">
-        {{ popup.friend.tags.join(' · ') }}
+      <p v-if="popup.tags && popup.tags.length" class="text-[11px] text-stone-400 mb-2">
+        {{ popup.tags.join(' · ') }}
       </p>
 
       <div class="mb-1">

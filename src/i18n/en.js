@@ -23,6 +23,8 @@ export default {
     weeklyHangouts: 'This week',
     emptyState: 'Add a friend to get started',
     scatterTitle: 'Friendship map',
+    scatterFriends: 'Friends',
+    scatterActivities: 'Activities',
     legend: {
       worth: 'Worth it',
       balanced: 'Balanced',
@@ -102,6 +104,7 @@ export default {
     values: 'What they bring',
     importantEvents: 'Important moments',
     scatterPosition: 'On the map',
+    activityScatter: 'Activities together',
     hangoutHistory: 'Hangout history',
     noHangouts: 'No hangouts logged yet',
     logHangout: 'Log a hangout',
