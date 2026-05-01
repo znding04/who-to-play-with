@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useGapThreshold } from '../composables/useGapThreshold'
 import { useViewMode } from '../composables/useViewMode'
 import { useFrequencyMode } from '../composables/useFrequencyMode'
+import { useScaleMode } from '../composables/useScaleMode'
 import { useI18n } from '../composables/useI18n.js'
 
 const { t } = useI18n()
@@ -21,6 +22,7 @@ const emit = defineEmits(['select'])
 const { gapThreshold, MIN, MAX } = useGapThreshold()
 const { mode } = useViewMode()
 const { freqMode } = useFrequencyMode()
+const { scaleMode, toggleScaleMode } = useScaleMode()
 
 const xAxisLabel = computed(() =>
   freqMode.value === 'permonth' ? t('scatter.xAxisPerMonth') : t('scatter.xAxisLifetime')
@@ -192,6 +194,23 @@ function gapToneClass(gap) {
             class="px-2.5 py-0.5 rounded-full text-[11px] border-none cursor-pointer transition-colors touch-manipulation"
             :class="mode === 'absolute' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500'"
           >{{ t('scatter.absolute') }}</button>
+        </div>
+      </div>
+      <div v-if="mode === 'normalized'" class="flex items-center justify-between text-[11px] text-stone-500">
+        <span>Scale</span>
+        <div class="flex gap-1">
+          <button
+            type="button"
+            @click="scaleMode = 'log'"
+            class="px-2.5 py-0.5 rounded-full text-[11px] border-none cursor-pointer transition-colors touch-manipulation"
+            :class="scaleMode === 'log' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500'"
+          >Log</button>
+          <button
+            type="button"
+            @click="scaleMode = 'linear'"
+            class="px-2.5 py-0.5 rounded-full text-[11px] border-none cursor-pointer transition-colors touch-manipulation"
+            :class="scaleMode === 'linear' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500'"
+          >Linear</button>
         </div>
       </div>
       <div>

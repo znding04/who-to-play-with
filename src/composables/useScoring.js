@@ -4,6 +4,7 @@ import { useViewMode } from './useViewMode'
 import { useFrequencyMode } from './useFrequencyMode'
 import { useCustomDurations } from './useCustomDurations'
 import { usePlotExclusions } from './usePlotExclusions'
+import { useScaleMode } from './useScaleMode'
 
 // Duration multiplier for lifetime quantity scoring (compressed, not real hours)
 const DURATION_MULT = { '30min': 0.5, '1hr': 1, '2hr': 1.5, 'halfday': 2, 'fullday': 3, 'trip': 4 }
@@ -80,29 +81,34 @@ function computeRawScores(friends, hangouts, freqMode, customDurations) {
  * Log + Range normalization: applies log(1+x) to compress outliers, then
  * range-normalizes to 0-100.  This prevents one "hangout monster" friend from
  * pushing everyone else into the corner of the scatter plot.
+ *
+ * Linear mode: skips the log transform and uses raw scores directly with
+ * range normalization.
  */
-function normalizeScores(rawScores) {
-  const logQ = rawScores.map(s => s.rawQ > 0 ? Math.log(1 + s.rawQ) : 0)
-  const logY = rawScores.map(s => s.rawY > 0 ? Math.log(1 + s.rawY) : 0)
+function normalizeScores(rawScores, scaleMode) {
+  const useLog = scaleMode !== 'linear'
 
-  const nonZeroLogQ = logQ.filter(v => v > 0)
-  const nonZeroLogY = logY.filter(v => v > 0)
+  const valQ = rawScores.map(s => s.rawQ > 0 ? (useLog ? Math.log(1 + s.rawQ) : s.rawQ) : 0)
+  const valY = rawScores.map(s => s.rawY > 0 ? (useLog ? Math.log(1 + s.rawY) : s.rawY) : 0)
 
-  const minQ = nonZeroLogQ.length > 0 ? Math.min(...nonZeroLogQ) : 0
-  const maxQ = nonZeroLogQ.length > 0 ? Math.max(...nonZeroLogQ) : 0
-  const minY = nonZeroLogY.length > 0 ? Math.min(...nonZeroLogY) : 0
-  const maxY = nonZeroLogY.length > 0 ? Math.max(...nonZeroLogY) : 0
+  const nonZeroQ = valQ.filter(v => v > 0)
+  const nonZeroY = valY.filter(v => v > 0)
+
+  const minQ = nonZeroQ.length > 0 ? Math.min(...nonZeroQ) : 0
+  const maxQ = nonZeroQ.length > 0 ? Math.max(...nonZeroQ) : 0
+  const minY = nonZeroY.length > 0 ? Math.min(...nonZeroY) : 0
+  const maxY = nonZeroY.length > 0 ? Math.max(...nonZeroY) : 0
 
   const rangeQ = maxQ - minQ
   const rangeY = maxY - minY
 
   return rawScores.map(({ friend, rawQ, rawY }) => {
-    const lq = rawQ > 0 ? Math.log(1 + rawQ) : 0
-    const ly = rawY > 0 ? Math.log(1 + rawY) : 0
+    const vq = rawQ > 0 ? (useLog ? Math.log(1 + rawQ) : rawQ) : 0
+    const vy = rawY > 0 ? (useLog ? Math.log(1 + rawY) : rawY) : 0
     // Use Math.max(1, …) so friends with data never normalize to 0 —
     // 0 is reserved for friends with NO hangouts at all.
-    const quantity = lq > 0 ? (rangeQ > 0 ? Math.max(1, Math.round(((lq - minQ) / rangeQ) * 100)) : 50) : 0
-    const quality = ly > 0 ? (rangeY > 0 ? Math.max(1, Math.round(((ly - minY) / rangeY) * 100)) : 50) : 0
+    const quantity = vq > 0 ? (rangeQ > 0 ? Math.max(1, Math.round(((vq - minQ) / rangeQ) * 100)) : 50) : 0
+    const quality = vy > 0 ? (rangeY > 0 ? Math.max(1, Math.round(((vy - minY) / rangeY) * 100)) : 50) : 0
     return { friend, quantity, quality, gap: quality - quantity }
   })
 }
@@ -123,11 +129,12 @@ export function useScoring() {
   const { freqMode } = useFrequencyMode()
   const { customDurations } = useCustomDurations()
   const { isExcluded } = usePlotExclusions()
+  const { scaleMode } = useScaleMode()
 
   const scoredFriends = computed(() => {
     const includedFriends = friends.value.filter(f => !isExcluded(f.id))
     const raw = computeRawScores(includedFriends, hangouts.value, freqMode.value, customDurations.value)
-    const scored = mode.value === 'absolute' ? absoluteScores(raw) : normalizeScores(raw)
+    const scored = mode.value === 'absolute' ? absoluteScores(raw) : normalizeScores(raw, scaleMode.value)
     return scored.sort((a, b) => a.gap - b.gap)
   })
 
