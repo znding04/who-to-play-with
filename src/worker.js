@@ -9,7 +9,7 @@
 
 const COOKIE_NAME = 'wtpw_session';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
-const DEFAULT_APP_BASE = 'https://who-to-hang-with.ljding94.workers.dev';
+const DEFAULT_APP_BASE = 'https://hangwith.ljding.app';
 
 // ============================================================
 // Router
@@ -603,6 +603,7 @@ router.add('POST', '/api/auth/:provider', async (req, env, params) => {
 router.add('GET', '/api/auth/callback/:provider', async (req, env, params) => {
   const { provider } = params;
   const url = new URL(req.url);
+  const appBase = env.APP_BASE_URL || DEFAULT_APP_BASE;
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   const error = url.searchParams.get('error');
@@ -610,7 +611,7 @@ router.add('GET', '/api/auth/callback/:provider', async (req, env, params) => {
   if (error) {
     return new Response(null, {
       status: 302,
-      headers: { Location: `/#/login?error=${error}` },
+      headers: { Location: `${appBase}/#/login?error=${error}` },
     });
   }
 
@@ -618,14 +619,14 @@ router.add('GET', '/api/auth/callback/:provider', async (req, env, params) => {
   if (!state) {
     return new Response(null, {
       status: 302,
-      headers: { Location: `/#/login?error=missing_state` },
+      headers: { Location: `${appBase}/#/login?error=missing_state` },
     });
   }
   const statePayload = await verifyJwt(state, env);
   if (!statePayload || !statePayload.nonce) {
     return new Response(null, {
       status: 302,
-      headers: { Location: `/#/login?error=invalid_state` },
+      headers: { Location: `${appBase}/#/login?error=invalid_state` },
     });
   }
   // State valid for 10 minutes
@@ -633,7 +634,7 @@ router.add('GET', '/api/auth/callback/:provider', async (req, env, params) => {
   if (Date.now() - statePayload.created > STATE_MAX_AGE) {
     return new Response(null, {
       status: 302,
-      headers: { Location: `/#/login?error=state_expired` },
+      headers: { Location: `${appBase}/#/login?error=state_expired` },
     });
   }
 
@@ -648,7 +649,7 @@ router.add('GET', '/api/auth/callback/:provider', async (req, env, params) => {
   if (!userInfo) {
     return new Response(null, {
       status: 302,
-      headers: { Location: `/#/login?error=oauth_failed` },
+      headers: { Location: `${appBase}/#/login?error=oauth_failed` },
     });
   }
 
@@ -658,7 +659,7 @@ router.add('GET', '/api/auth/callback/:provider', async (req, env, params) => {
   return new Response(null, {
     status: 302,
     headers: {
-      Location: `/#/auth-callback?token=${token}`,
+      Location: `${appBase}/#/auth-callback?token=${token}`,
       'Set-Cookie': cookieHeader(token),
     },
   });
@@ -700,10 +701,11 @@ router.add('GET', '/api/auth/me', requireAuth(async (req, env, params, url, user
 
 // POST /api/auth/logout — Logout
 router.add('POST', '/api/auth/logout', async (req, env) => {
+  const appBase = env.APP_BASE_URL || DEFAULT_APP_BASE;
   return new Response(null, {
     status: 302,
     headers: {
-      Location: '/',
+      Location: `${appBase}/`,
       'Set-Cookie': clearCookie(),
     },
   });

@@ -85,6 +85,12 @@
 - ✅ Removed invalid CORS config (`Access-Control-Allow-Origin: *` + `credentials: true`)
 - ✅ wrangler added as dev dependency for deployment
 
+### 🌐 Custom Domain Redirect Fix (2026-04-30)
+- ✅ `DEFAULT_APP_BASE` changed from `who-to-hang-with.ljding94.workers.dev` to `https://hangwith.ljding.app`
+- ✅ OAuth callback handler now uses absolute `appBase` redirects instead of relative URLs
+- ✅ Logout handler now redirects to `appBase` instead of relative `/`
+- ⚠️ **Manual steps required** — see "OAuth Provider Custom Domain Updates" section below
+
 ### ⏳ Pending
 - (deferred) Mini Program path: WeChat DevTools test with real appid, get WeChat account app ID
 - **ScatterPlot category filter** — let the user filter the scatter plot by hangout category (e.g. 🍜 吃饭, ✈️ 旅行, 💬 线上). Recompute each friend's quality/quantity using only hangouts of the selected type, so the user can see "who's good for which activity". UI: chip row above the plot with 全部 + each type. Should also include any custom types from `useCustomTypes`.
@@ -118,7 +124,7 @@ npx wrangler d1 execute who-to-hang-with-db --file=./schema.sql --remote
 
 # 4. Set secrets
 openssl rand -base64 32 | npx wrangler secret put JWT_SECRET
-echo "https://who-to-hang-with.ljding94.workers.dev" | npx wrangler secret put APP_BASE_URL
+echo "https://hangwith.ljding.app" | npx wrangler secret put APP_BASE_URL
 
 # 5. Build and deploy
 npm run build
@@ -131,8 +137,8 @@ npx wrangler deploy
 1. Go to https://github.com/settings/developers
 2. Click "New OAuth App"
 3. App name: `找谁玩`
-4. Homepage URL: `https://who-to-hang-with.ljding94.workers.dev`
-5. Authorization callback URL: `https://who-to-hang-with.ljding94.workers.dev/api/auth/callback/github`
+4. Homepage URL: `https://hangwith.ljding.app`
+5. Authorization callback URL: `https://hangwith.ljding.app/api/auth/callback/github`
 6. Copy Client ID and Client Secret, then:
    ```bash
    npx wrangler secret put GITHUB_CLIENT_ID
@@ -142,7 +148,7 @@ npx wrangler deploy
 **Google OAuth**:
 1. Go to https://console.cloud.google.com/ → APIs & Services → Credentials
 2. Create OAuth 2.0 Client ID (Web application)
-3. Authorized redirect URIs: `https://who-to-hang-with.ljding94.workers.dev/api/auth/callback/google`
+3. Authorized redirect URIs: `https://hangwith.ljding.app/api/auth/callback/google`
 4. Copy Client ID and Secret, then:
    ```bash
    npx wrangler secret put GOOGLE_CLIENT_ID
@@ -174,7 +180,7 @@ npx wrangler login
 
 # 2. Set required secrets
 openssl rand -base64 32 | npx wrangler secret put JWT_SECRET
-echo "https://who-to-hang-with.ljding94.workers.dev" | npx wrangler secret put APP_BASE_URL
+echo "https://hangwith.ljding.app" | npx wrangler secret put APP_BASE_URL
 
 # 3. Run D1 schema migration (this updates auth_tokens table)
 npx wrangler d1 execute who-to-hang-with-db --file=./schema.sql --remote
@@ -190,7 +196,38 @@ npm run build
 npx wrangler deploy
 ```
 
-After deploy, the app will be live at: https://who-to-hang-with.ljding94.workers.dev/#/
+After deploy, the app will be live at: https://hangwith.ljding.app/#/
+
+### OAuth Provider Custom Domain Updates (Manual)
+
+After deploying the code fix, update the callback URLs in each OAuth provider console:
+
+**1. Update `APP_BASE_URL` secret:**
+```bash
+echo "https://hangwith.ljding.app" | npx wrangler secret put APP_BASE_URL
+```
+
+**2. Google Cloud Console** (https://console.cloud.google.com/apis/credentials):
+- Edit your OAuth 2.0 Client ID
+- Under "Authorized redirect URIs":
+  - Add: `https://hangwith.ljding.app/api/auth/callback/google`
+  - Remove: `https://tohangwith.ljding94.workers.dev/api/auth/callback/google`
+
+**3. GitHub Developer Settings** (https://github.com/settings/developers):
+- Select your OAuth App
+- Update "Authorization callback URL":
+  - Set to: `https://hangwith.ljding.app/api/auth/callback/github`
+
+**4. Apple Developer** (https://developer.apple.com/account/resources/identifiers/list/serviceId):
+- Select your Services ID
+- Update "Return URLs":
+  - Add: `https://hangwith.ljding.app/api/auth/callback/apple`
+  - Remove: `https://tohangwith.ljding94.workers.dev/api/auth/callback/apple`
+
+**5. Redeploy:**
+```bash
+npm run build && npx wrangler deploy
+```
 
 ## Deployment
 
